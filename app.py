@@ -1,16 +1,23 @@
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, ParametresGlobaux
-import secrets
+import secrets 
 import os
 import webbrowser
 from threading import Timer
 
 app = Flask(__name__)
 
-# Configuration
+# --- Configuration ---
+if not os.path.exists("database"):
+    os.makedirs("database")
+
+
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+DB_PATH = os.path.join(BASE_DIR, "database", "cave.db")
+
 app.config['SECRET_KEY'] = secrets.token_hex(32)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database/cave.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{DB_PATH}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialisation
