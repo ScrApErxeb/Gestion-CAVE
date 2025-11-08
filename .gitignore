@@ -1,1 +1,4 @@
 __pycache__
+app/database/*.db
+app.db  
+cave.db
