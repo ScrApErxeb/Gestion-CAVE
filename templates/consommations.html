@@ -2,10 +2,257 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Consommations</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-    <h1>🍷 Consommations</h1>
+<body class="page-content">
+    <div class="page-header">
+        <h2>🛒 Enregistrer une vente</h2>
+    </div>
+
+    <!-- Formulaire de vente rapide -->
+    <div class="dashboard-section">
+        <h3>Nouvelle vente</h3>
+        <form id="venteForm" onsubmit="enregistrerVente(event)">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="abonne">Abonné *</label>
+                    <select id="abonne" required>
+                        <option value="">Sélectionner un abonné</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="produit">Produit *</label>
+                    <select id="produit" required onchange="updatePrix()">
+                        <option value="">Sélectionner un produit</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="quantite">Quantité *</label>
+                    <input type="number" id="quantite" min="1" value="1" required onchange="calculerTotal()">
+                </div>
+                <div class="form-group">
+                    <label for="prix">Prix unitaire (FCFA) *</label>
+                    <input type="number" id="prix" step="0.01" required onchange="calculerTotal()">
+                </div>
+                <div class="form-group">
+                    <label for="total">Total (FCFA)</label>
+                    <input type="number" id="total" readonly>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="note">Note (optionnel)</label>
+                <textarea id="note" rows="2"></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success">💾 Enregistrer la vente</button>
+                <button type="button" class="btn btn-secondary" onclick="resetForm()">🔄 Réinitialiser</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Historique des ventes -->
+    <div class="dashboard-section">
+        <h3>Dernières ventes</h3>
+        
+        <div class="search-bar">
+            <input type="text" id="searchAbonne" placeholder="Filtrer par abonné..." onkeyup="chargerConsommations()">
+        </div>
+
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Abonné</th>
+                        <th>Produit</th>
+                        <th>Qté</th>
+                        <th>Prix unit.</th>
+                        <th>Total</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="consommationsTable">
+                    <!-- Rempli dynamiquement -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let produits = [];
+        let abonnes = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            chargerAbonnes();
+            chargerProduits();
+            chargerConsommations();
+        });
+
+        async function chargerAbonnes() {
+            try {
+                const response = await fetch('/api/abonnes');
+                const data = await response.json();
+                
+                if (data.success) {
+                    abonnes = data.data;
+                    const select = document.getElementById('abonne');
+                    data.data.forEach(a => {
+                        const option = document.createElement('option');
+                        option.value = a.id;
+                        option.textContent = `${a.numero_abonne} - ${a.nom_complet}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function chargerProduits() {
+            try {
+                const response = await fetch('/api/produits');
+                const data = await response.json();
+                
+                if (data.success) {
+                    produits = data.data;
+                    const select = document.getElementById('produit');
+                    data.data.forEach(p => {
+                        const option = document.createElement('option');
+                        option.value = p.id;
+                        option.dataset.prix = p.prix_vente;
+                        option.dataset.stock = p.stock;
+                        option.textContent = `${p.nom} (Stock: ${p.stock} - ${p.prix_vente} FCFA)`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        function updatePrix() {
+            const select = document.getElementById('produit');
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption) {
+                document.getElementById('prix').value = selectedOption.dataset.prix || 0;
+                calculerTotal();
+            }
+        }
+
+        function calculerTotal() {
+            const quantite = parseFloat(document.getElementById('quantite').value) || 0;
+            const prix = parseFloat(document.getElementById('prix').value) || 0;
+            document.getElementById('total').value = (quantite * prix).toFixed(0);
+        }
+
+        async function enregistrerVente(event) {
+            event.preventDefault();
+
+            const data = {
+                abonne_id: parseInt(document.getElementById('abonne').value),
+                produit_id: parseInt(document.getElementById('produit').value),
+                quantite: parseInt(document.getElementById('quantite').value),
+                prix_unitaire: parseFloat(document.getElementById('prix').value),
+                note: document.getElementById('note').value
+            };
+
+            try {
+                const response = await fetch('/api/consommations', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Vente enregistrée avec succès!');
+                    resetForm();
+                    chargerConsommations();
+                    chargerProduits(); // Recharger pour mettre à jour les stocks
+                } else {
+                    alert('❌ Erreur: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de l\'enregistrement');
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('venteForm').reset();
+            document.getElementById('total').value = '';
+        }
+
+        async function chargerConsommations() {
+            try {
+                const searchValue = document.getElementById('searchAbonne').value;
+                const response = await fetch(`/api/consommations?facturees=false`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const tbody = document.getElementById('consommationsTable');
+                    tbody.innerHTML = '';
+
+                    let filteredData = data.data;
+                    if (searchValue) {
+                        filteredData = data.data.filter(c => 
+                            c.abonne.toLowerCase().includes(searchValue.toLowerCase())
+                        );
+                    }
+
+                    filteredData.forEach(c => {
+                        const tr = document.createElement('tr');
+                        const date = new Date(c.date);
+                        tr.innerHTML = `
+                            <td>${date.toLocaleString('fr-FR')}</td>
+                            <td>${c.abonne}</td>
+                            <td>${c.produit}</td>
+                            <td>${c.quantite}</td>
+                            <td>${c.prix_unitaire.toLocaleString()} FCFA</td>
+                            <td><strong>${c.montant_total.toLocaleString()} FCFA</strong></td>
+                            <td>${c.facture_id ? '✅ Facturée' : '⏳ En attente'}</td>
+                            <td>
+                                ${!c.facture_id ? `<button class="btn btn-sm btn-danger" onclick="supprimerConsommation(${c.id})">🗑️</button>` : ''}
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function supprimerConsommation(id) {
+            if (!confirm('Voulez-vous vraiment supprimer cette consommation ?')) return;
+
+            try {
+                const response = await fetch(`/api/consommations/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Consommation supprimée');
+                    chargerConsommations();
+                    chargerProduits(); // Recharger pour mettre à jour les stocks
+                } else {
+                    alert('Erreur: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+    </script>
 </body>
 </html>

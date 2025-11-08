@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des produits</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="page-content">
+    <div class="page-header">
+        <h2>📦 Gestion des produits</h2>
+        <button class="btn btn-primary" onclick="showModal('addProduitModal')">+ Nouveau produit</button>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="stats-grid" style="margin-bottom: 20px;">
+        <div class="stat-card">
+            <div class="stat-content">
+                <div class="stat-value" id="totalProduits">0</div>
+                <div class="stat-label">Produits actifs</div>
+            </div>
+        </div>
+        <div class="stat-card alert">
+            <div class="stat-content">
+                <div class="stat-value" id="stockCritique">0</div>
+                <div class="stat-label">Stocks critiques</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Rechercher un produit..." onkeyup="chargerProduits()">
+        <button class="btn btn-info" onclick="filtrerStockCritique()">⚠️ Stocks critiques</button>
+    </div>
+
+    <!-- Tableau des produits -->
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Nom</th>
+                    <th>Type</th>
+                    <th>Prix achat</th>
+                    <th>Prix vente</th>
+                    <th>Stock</th>
+                    <th>Marge</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="produitsTable">
+                <!-- Rempli dynamiquement -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal Produit -->
+    <div id="addProduitModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addProduitModal')">&times;</span>
+            <h3 id="modalTitle">Nouveau produit</h3>
+            <form id="produitForm" onsubmit="saveProduit(event)">
+                <input type="hidden" id="produitId">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="nom">Nom du produit *</label>
+                        <input type="text" id="nom" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="type">Type</label>
+                        <input type="text" id="type" placeholder="Boisson, Alcool, Snack...">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prix_achat">Prix d'achat (FCFA) *</label>
+                        <input type="number" id="prix_achat" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="prix_vente">Prix de vente (FCFA) *</label>
+                        <input type="number" id="prix_vente" step="0.01" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="stock">Stock initial</label>
+                        <input type="number" id="stock" value="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="stock_alerte">Seuil d'alerte</label>
+                        <input type="number" id="stock_alerte" value="10" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="unite">Unité</label>
+                        <input type="text" id="unite" value="unité">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addProduitModal')">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let filtreStockCritique = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            chargerProduits();
+        });
+
+        async function chargerProduits() {
+            try {
+                const recherche = document.getElementById('searchInput').value;
+                let url = `/api/produits?recherche=${recherche}`;
+                if (filtreStockCritique) {
+                    url += '&stock_critique=true';
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    afficherProduits(data.data);
+                    mettreAJourStats(data.data);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        function afficherProduits(produits) {
+            const tbody = document.getElementById('produitsTable');
+            tbody.innerHTML = '';
+            
+            produits.forEach(p => {
+                const tr = document.createElement('tr');
+                if (p.stock_critique) {
+                    tr.className = 'row-alert';
+                }
+                tr.innerHTML = `
+                    <td>${p.code_produit}</td>
+                    <td><strong>${p.nom}</strong></td>
+                    <td>${p.type || '-'}</td>
+                    <td>${p.prix_achat.toLocaleString()} FCFA</td>
+                    <td>${p.prix_vente.toLocaleString()} FCFA</td>
+                    <td>${p.stock} ${p.unite} ${p.stock_critique ? '⚠️' : ''}</td>
+                    <td>${p.marge_pourcentage.toFixed(1)}%</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" onclick="modifierProduit(${p.id})">✏️</button>
+                        <button class="btn btn-sm btn-danger" onclick="desactiverProduit(${p.id})">🗑️</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function mettreAJourStats(produits) {
+            document.getElementById('totalProduits').textContent = produits.length;
+            const critiques = produits.filter(p => p.stock_critique).length;
+            document.getElementById('stockCritique').textContent = critiques;
+        }
+
+        function filtrerStockCritique() {
+            filtreStockCritique = !filtreStockCritique;
+            chargerProduits();
+        }
+
+        async function saveProduit(event) {
+            event.preventDefault();
+            
+            const id = document.getElementById('produitId').value;
+            const data = {
+                nom: document.getElementById('nom').value,
+                type: document.getElementById('type').value,
+                prix_achat: parseFloat(document.getElementById('prix_achat').value),
+                prix_vente: parseFloat(document.getElementById('prix_vente').value),
+                stock: parseInt(document.getElementById('stock').value),
+                stock_alerte: parseInt(document.getElementById('stock_alerte').value),
+                unite: document.getElementById('unite').value
+            };
+            
+            try {
+                const url = id ? `/api/produits/${id}` : '/api/produits';
+                const method = id ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(result.message);
+                    closeModal('addProduitModal');
+                    chargerProduits();
+                } else {
+                    alert('Erreur: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de l\'enregistrement');
+            }
+        }
+
+        async function modifierProduit(id) {
+            try {
+                const response = await fetch(`/api/produits/${id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const p = data.data;
+                    document.getElementById('modalTitle').textContent = 'Modifier le produit';
+                    document.getElementById('produitId').value = p.id;
+                    document.getElementById('nom').value = p.nom;
+                    document.getElementById('type').value = p.type || '';
+                    document.getElementById('prix_achat').value = p.prix_achat;
+                    document.getElementById('prix_vente').value = p.prix_vente;
+                    document.getElementById('stock').value = p.stock;
+                    document.getElementById('stock_alerte').value = p.stock_alerte;
+                    document.getElementById('unite').value = p.unite;
+                    
+                    showModal('addProduitModal');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function desactiverProduit(id) {
+            if (!confirm('Voulez-vous vraiment désactiver ce produit ?')) return;
+            
+            try {
+                const response = await fetch(`/api/produits/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(result.message);
+                    chargerProduits();
+                } else {
+                    alert('Erreur: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+            if (modalId === 'addProduitModal' && !document.getElementById('produitId').value) {
+                document.getElementById('produitForm').reset();
+                document.getElementById('modalTitle').textContent = 'Nouveau produit';
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

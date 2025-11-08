@@ -2,10 +2,116 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tableau de bord</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-    <h1>📊 Tableau de bord</h1>
+<body class="page-content">
+    <div class="page-header">
+        <h2>📊 Tableau de bord</h2>
+    </div>
+
+    <!-- Statistiques globales -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.total_produits }}</div>
+                <div class="stat-label">Produits actifs</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.total_abonnes }}</div>
+                <div class="stat-label">Abonnés actifs</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">💰</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ "{:,.0f}".format(stats.ventes_jour) }} FCFA</div>
+                <div class="stat-label">Ventes du jour</div>
+            </div>
+        </div>
+
+        <div class="stat-card alert">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ stats.produits_stock_critique }}</div>
+                <div class="stat-label">Stocks critiques</div>
+            </div>
+        </div>
+
+        <div class="stat-card warning">
+            <div class="stat-icon">📄</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ "{:,.0f}".format(stats.factures_impayees) }} FCFA</div>
+                <div class="stat-label">Factures impayées</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertes stock critique -->
+    {% if produits_critiques %}
+    <div class="dashboard-section">
+        <h3>⚠️ Produits en stock critique</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Produit</th>
+                        <th>Stock actuel</th>
+                        <th>Seuil d'alerte</th>
+                        <th>Unité</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for produit in produits_critiques %}
+                    <tr class="row-alert">
+                        <td>{{ produit.code_produit }}</td>
+                        <td>{{ produit.nom }}</td>
+                        <td><strong>{{ produit.stock }}</strong></td>
+                        <td>{{ produit.stock_alerte }}</td>
+                        <td>{{ produit.unite }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Dernières consommations -->
+    <div class="dashboard-section">
+        <h3>🛒 Dernières consommations</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Abonné</th>
+                        <th>Produit</th>
+                        <th>Quantité</th>
+                        <th>Montant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for conso in dernieres_conso %}
+                    <tr>
+                        <td>{{ conso.date.strftime('%d/%m/%Y %H:%M') }}</td>
+                        <td>{{ conso.abonne.nom_complet }}</td>
+                        <td>{{ conso.produit.nom }}</td>
+                        <td>{{ conso.quantite }}</td>
+                        <td>{{ "{:,.0f}".format(conso.montant_total) }} FCFA</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </body>
 </html>

@@ -2,30 +2,67 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Tableau de bord - Cave à Vin</title>
-   
-    <script>
-        function openTab(tabName) {
-            const tabs = document.querySelectorAll(".tab");
-            tabs.forEach(t => t.classList.remove("active"));
-            event.target.classList.add("active");
-            document.getElementById("content-frame").src = tabName;
-        }
-        window.onload = () => {
-            document.getElementById("content-frame").src = "dashboard";
-        };
-    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cave Gestion</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="navbar">
-        <div class="tab active" onclick="openTab('dashboard')">Tableau de bord</div>
-        <div class="tab" onclick="openTab('abonnes')">Abonnés</div>
-        <div class="tab" onclick="openTab('consommations')">Consommations</div>
-        <div class="tab" onclick="openTab('factures')">Factures</div>
-        <div class="tab" onclick="openTab('paiements')">Paiements</div>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <h1>🍷 Cave Gestion</h1>
+            </div>
+            <div class="header-right">
+                <span class="user-info">👤 {{ user.nom_complet or user.username }}</span>
+                <span class="user-role">({{ user.role }})</span>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">Déconnexion</a>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="app-nav">
+            <button class="nav-item active" onclick="loadPage('dashboard')">
+                📊 Tableau de bord
+            </button>
+            <button class="nav-item" onclick="loadPage('abonnes')">
+                👥 Abonnés
+            </button>
+            <button class="nav-item" onclick="loadPage('consommations')">
+                🛒 Consommations
+            </button>
+            <button class="nav-item" onclick="loadPage('produits')">
+                📦 Produits
+            </button>
+            <button class="nav-item" onclick="loadPage('stock')">
+                📋 Stock
+            </button>
+            <button class="nav-item" onclick="loadPage('factures')">
+                📄 Factures
+            </button>
+            <button class="nav-item" onclick="loadPage('paiements')">
+                💰 Paiements
+            </button>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="app-main">
+            <iframe id="content-frame" src="{{ url_for('dashboard') }}" frameborder="0"></iframe>
+        </main>
     </div>
-    <div class="content">
-        <iframe id="content-frame"></iframe>
-    </div>
+
+    <script>
+        function loadPage(page) {
+            // Mettre à jour la navigation active
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Charger la page dans l'iframe
+            const iframe = document.getElementById('content-frame');
+            iframe.src = '/' + page;
+        }
+    </script>
 </body>
 </html>

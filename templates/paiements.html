@@ -2,10 +2,230 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Paiements</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des paiements</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-    <h1>💰 Paiements</h1>
+<body class="page-content">
+    <div class="page-header">
+        <h2>💰 Gestion des paiements</h2>
+        <button class="btn btn-success" onclick="showModal('addPaiementModal')">+ Nouveau paiement</button>
+    </div>
+
+    <!-- Liste des paiements -->
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Facture</th>
+                    <th>Abonné</th>
+                    <th>Montant</th>
+                    <th>Mode</th>
+                    <th>Référence</th>
+                    <th>Reçu par</th>
+                </tr>
+            </thead>
+            <tbody id="paiementsTable">
+                <!-- Rempli dynamiquement -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal Ajouter Paiement -->
+    <div id="addPaiementModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addPaiementModal')">&times;</span>
+            <h3>Enregistrer un paiement</h3>
+            <form id="paiementForm" onsubmit="enregistrerPaiement(event)">
+                <div class="form-group">
+                    <label for="factureSelect">Facture à payer *</label>
+                    <select id="factureSelect" required onchange="afficherDetailsFacture()">
+                        <option value="">Sélectionner une facture</option>
+                    </select>
+                </div>
+
+                <div id="detailsFacture" style="display: none; padding: 15px; background: #f9f9f9; border-radius: 5px; margin: 15px 0;">
+                    <p><strong>Abonné:</strong> <span id="factureAbonne"></span></p>
+                    <p><strong>Montant total:</strong> <span id="factureMontant"></span> FCFA</p>
+                    <p><strong>Déjà payé:</strong> <span id="facturePaye"></span> FCFA</p>
+                    <p><strong>Reste à payer:</strong> <span id="factureReste" style="color: #e74c3c; font-weight: bold;"></span> FCFA</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="montantPaiement">Montant du paiement (FCFA) *</label>
+                    <input type="number" id="montantPaiement" step="0.01" required min="0">
+                </div>
+
+                <div class="form-group">
+                    <label for="modePaiement">Mode de paiement *</label>
+                    <select id="modePaiement" required>
+                        <option value="">Sélectionner un mode</option>
+                        <option value="especes">💵 Espèces</option>
+                        <option value="mobile_money">📱 Mobile Money</option>
+                        <option value="cheque">📝 Chèque</option>
+                        <option value="carte">💳 Carte bancaire</option>
+                        <option value="virement">🏦 Virement</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="referencePaiement">Référence (N° transaction, chèque...)</label>
+                    <input type="text" id="referencePaiement">
+                </div>
+
+                <div class="form-group">
+                    <label for="notePaiement">Note</label>
+                    <textarea id="notePaiement" rows="2"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addPaiementModal')">Annuler</button>
+                    <button type="submit" class="btn btn-success">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let facturesImpayees = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            chargerPaiements();
+            chargerFacturesImpayees();
+        });
+
+        async function chargerFacturesImpayees() {
+            try {
+                const response = await fetch('/api/factures?statut=impayee');
+                const response2 = await fetch('/api/factures?statut=partielle');
+                
+                const data1 = await response.json();
+                const data2 = await response2.json();
+                
+                if (data1.success && data2.success) {
+                    facturesImpayees = [...data1.data, ...data2.data];
+                    
+                    const select = document.getElementById('factureSelect');
+                    select.innerHTML = '<option value="">Sélectionner une facture</option>';
+                    
+                    facturesImpayees.forEach(f => {
+                        const option = document.createElement('option');
+                        option.value = f.id;
+                        option.dataset.abonne = f.abonne;
+                        option.dataset.montant = f.montant_ttc;
+                        option.dataset.paye = f.montant_paye;
+                        option.dataset.reste = f.reste_a_payer;
+                        option.textContent = `${f.numero_facture} - ${f.abonne} (Reste: ${f.reste_a_payer.toLocaleString()} FCFA)`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        function afficherDetailsFacture() {
+            const select = document.getElementById('factureSelect');
+            const option = select.options[select.selectedIndex];
+            
+            if (option && option.value) {
+                document.getElementById('detailsFacture').style.display = 'block';
+                document.getElementById('factureAbonne').textContent = option.dataset.abonne;
+                document.getElementById('factureMontant').textContent = parseFloat(option.dataset.montant).toLocaleString();
+                document.getElementById('facturePaye').textContent = parseFloat(option.dataset.paye).toLocaleString();
+                document.getElementById('factureReste').textContent = parseFloat(option.dataset.reste).toLocaleString();
+                document.getElementById('montantPaiement').max = option.dataset.reste;
+                document.getElementById('montantPaiement').value = option.dataset.reste;
+            } else {
+                document.getElementById('detailsFacture').style.display = 'none';
+            }
+        }
+
+        async function enregistrerPaiement(event) {
+            event.preventDefault();
+
+            const data = {
+                facture_id: parseInt(document.getElementById('factureSelect').value),
+                montant: parseFloat(document.getElementById('montantPaiement').value),
+                mode_paiement: document.getElementById('modePaiement').value,
+                reference: document.getElementById('referencePaiement').value,
+                note: document.getElementById('notePaiement').value
+            };
+
+            try {
+                const response = await fetch('/api/paiements', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Paiement enregistré avec succès!');
+                    closeModal('addPaiementModal');
+                    document.getElementById('paiementForm').reset();
+                    chargerPaiements();
+                    chargerFacturesImpayees();
+                } else {
+                    alert('❌ Erreur: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de l\'enregistrement');
+            }
+        }
+
+        async function chargerPaiements() {
+            try {
+                const response = await fetch('/api/paiements');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const tbody = document.getElementById('paiementsTable');
+                    tbody.innerHTML = '';
+                    
+                    data.data.forEach(p => {
+                        const tr = document.createElement('tr');
+                        const date = new Date(p.date_paiement);
+                        
+                        let modeIcon = '💵';
+                        if (p.mode_paiement === 'mobile_money') modeIcon = '📱';
+                        else if (p.mode_paiement === 'cheque') modeIcon = '📝';
+                        else if (p.mode_paiement === 'carte') modeIcon = '💳';
+                        else if (p.mode_paiement === 'virement') modeIcon = '🏦';
+                        
+                        tr.innerHTML = `
+                            <td>${date.toLocaleString('fr-FR')}</td>
+                            <td><strong>${p.facture_numero}</strong></td>
+                            <td>${p.abonne}</td>
+                            <td><strong>${p.montant.toLocaleString()} FCFA</strong></td>
+                            <td>${modeIcon} ${p.mode_paiement}</td>
+                            <td>${p.reference || '-'}</td>
+                            <td>${p.recu_par || '-'}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
 </body>
 </html>

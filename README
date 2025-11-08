@@ -1,0 +1,267 @@
+# 🍷 Cave Gestion - Système de Gestion de Cave
+
+Application web complète pour la gestion d'une cave : ventes, abonnés, stock, factures et paiements.
+
+## 📋 Fonctionnalités
+
+### ✅ Gestion des abonnés
+- Création et modification des abonnés
+- Recherche par nom, numéro ou téléphone
+- Suivi du solde dû
+- Historique des consommations
+
+### ✅ Gestion des produits
+- Catalogue de produits avec catégories
+- Prix d'achat et prix de vente
+- Gestion des fournisseurs
+- Calcul automatique des marges
+
+### ✅ Gestion du stock
+- Entrées/sorties de stock
+- Ajustements d'inventaire
+- Alertes de stock critique
+- Historique complet des mouvements
+
+### ✅ Enregistrement des consommations
+- Vente rapide
+- Mise à jour automatique du stock
+- Association aux abonnés
+- Prêt pour facturation
+
+### ✅ Facturation
+- Génération automatique de factures
+- Numérotation automatique
+- Calcul de TVA (18% par défaut)
+- Suivi des factures impayées
+
+### ✅ Gestion des paiements
+- Multiples modes de paiement (espèces, mobile money, chèque, carte)
+- Paiements partiels
+- Mise à jour automatique du statut des factures
+- Statistiques de paiements
+
+### ✅ Tableau de bord
+- Vue d'ensemble des activités
+- Statistiques en temps réel
+- Alertes de stock critique
+- Dernières transactions
+
+## 🚀 Installation
+
+### Prérequis
+- Python 3.8 ou supérieur
+- pip (gestionnaire de paquets Python)
+
+### Étapes d'installation
+
+1. **Cloner ou télécharger le projet**
+```bash
+cd cave_gestion
+```
+
+2. **Créer un environnement virtuel (recommandé)**
+```bash
+python -m venv venv
+
+# Activer l'environnement (Windows)
+venv\Scripts\activate
+
+# Activer l'environnement (Linux/Mac)
+source venv/bin/activate
+```
+
+3. **Installer les dépendances**
+```bash
+pip install -r requirements.txt
+```
+
+4. **Créer la structure des dossiers**
+```bash
+mkdir database
+mkdir routes
+mkdir core
+mkdir static
+mkdir templates
+```
+
+5. **Lancer l'application**
+```bash
+python app.py
+```
+
+Le navigateur s'ouvrira automatiquement sur `http://127.0.0.1:5000/`
+
+## 👤 Connexion par défaut
+
+- **Utilisateur**: `admin`
+- **Mot de passe**: `admin123`
+
+⚠️ **IMPORTANT**: Changez le mot de passe par défaut après la première connexion !
+
+## 📁 Structure du projet
+
+```
+cave_gestion/
+│
+├── app.py                  # Point d'entrée de l'application
+├── models.py               # Modèles de données (SQLAlchemy)
+├── requirements.txt        # Dépendances Python
+│
+├── core/                   # Logique métier (à implémenter si nécessaire)
+│
+├── routes/                 # Routes API Flask
+│   ├── api_abonnes.py
+│   ├── api_produits.py
+│   ├── api_factures.py
+│   ├── api_paiements.py
+│   ├── api_consommations.py
+│   └── api_stock.py
+│
+├── templates/              # Templates HTML
+│   ├── login.html
+│   ├── home.html
+│   ├── dashboard.html
+│   ├── abonnes.html
+│   └── ...
+│
+├── static/                 # Fichiers statiques
+│   └── style.css
+│
+└── database/               # Base de données SQLite
+    └── cave.db
+```
+
+## 🔐 Gestion des utilisateurs
+
+### Rôles disponibles
+
+1. **Admin** - Accès complet à toutes les fonctionnalités
+2. **Gestionnaire** - Gestion des abonnés, produits, factures, stock
+3. **Caissier** - Enregistrement des ventes, consommations, paiements
+
+### Créer un nouvel utilisateur (via Python)
+
+```python
+from app import app
+from models import db, User
+
+with app.app_context():
+    user = User(
+        username='nom_utilisateur',
+        role='caissier',  # ou 'gestionnaire', 'admin'
+        nom_complet='Nom Complet'
+    )
+    user.set_password('mot_de_passe')
+    db.session.add(user)
+    db.session.commit()
+```
+
+## 💾 Sauvegarde des données
+
+La base de données est stockée dans `database/cave.db`. Pour sauvegarder vos données :
+
+1. **Sauvegarde manuelle**
+```bash
+# Copier le fichier de base de données
+cp database/cave.db database/cave_backup_$(date +%Y%m%d).db
+```
+
+2. **Sauvegarde automatique recommandée**
+   - Configurez une tâche planifiée (cron/Task Scheduler)
+   - Copiez régulièrement `cave.db` vers un emplacement sécurisé
+
+## 🛠️ Configuration
+
+### Modifier les paramètres de TVA
+
+Dans la base de données, table `parametres_globaux`:
+- `taux_tva_defaut`: Taux de TVA par défaut (18.0%)
+
+### Personnaliser les informations de la cave
+
+Modifiez la table `parametres_globaux`:
+- `nom_cave`: Nom de votre cave
+- `adresse`: Adresse complète
+- `telephone`: Numéro de téléphone
+- `email`: Email de contact
+- `ifu`: Identifiant Fiscal Unique
+- `rccm`: Registre du Commerce
+
+## 📊 API REST
+
+L'application expose des API REST pour toutes les fonctionnalités:
+
+### Abonnés
+- `GET /api/abonnes` - Liste des abonnés
+- `POST /api/abonnes` - Créer un abonné
+- `PUT /api/abonnes/<id>` - Modifier un abonné
+- `DELETE /api/abonnes/<id>` - Désactiver un abonné
+
+### Produits
+- `GET /api/produits` - Liste des produits
+- `POST /api/produits` - Créer un produit
+- `PUT /api/produits/<id>` - Modifier un produit
+
+### Factures
+- `GET /api/factures` - Liste des factures
+- `POST /api/factures` - Créer une facture
+- `GET /api/factures/<id>` - Détails d'une facture
+
+### Paiements
+- `GET /api/paiements` - Liste des paiements
+- `POST /api/paiements` - Enregistrer un paiement
+
+### Consommations
+- `GET /api/consommations` - Liste des consommations
+- `POST /api/consommations` - Enregistrer une consommation
+
+### Stock
+- `GET /api/stock/mouvements` - Historique des mouvements
+- `POST /api/stock/entree` - Entrée de stock
+- `POST /api/stock/sortie` - Sortie de stock
+- `POST /api/stock/ajustement` - Ajustement de stock
+
+## 🐛 Résolution de problèmes
+
+### L'application ne démarre pas
+- Vérifiez que toutes les dépendances sont installées: `pip install -r requirements.txt`
+- Vérifiez que le dossier `database/` existe
+
+### Erreur de base de données
+- Supprimez `database/cave.db` et relancez l'application (cela réinitialisera la base)
+- La base sera recréée avec l'utilisateur admin par défaut
+
+### Le navigateur ne s'ouvre pas automatiquement
+- Ouvrez manuellement: `http://127.0.0.1:5000/`
+
+## 📝 Notes importantes
+
+1. **Sécurité**
+   - Changez le SECRET_KEY dans `app.py` en production
+   - Utilisez des mots de passe forts
+   - Ne partagez pas le fichier de base de données
+
+2. **Performance**
+   - SQLite convient pour une utilisation locale
+   - Pour plusieurs utilisateurs simultanés, considérez PostgreSQL ou MySQL
+
+3. **Sauvegarde**
+   - Sauvegardez régulièrement `database/cave.db`
+   - Testez vos sauvegardes
+
+## 📞 Support
+
+Pour toute question ou problème:
+- Consultez la documentation dans ce fichier
+- Vérifiez les logs de l'application
+- Contactez votre administrateur système
+
+## 📄 Licence
+
+Ce logiciel est fourni "tel quel" sans garantie d'aucune sorte.
+
+---
+
+**Version**: 1.0  
+**Date**: 2025  
+**Développé pour**: Gestion de cave locale

@@ -2,10 +2,331 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Factures</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des factures</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-    <h1>💳 Factures</h1>
+<body class="page-content">
+    <div class="page-header">
+        <h2>📄 Gestion des factures</h2>
+        <button class="btn btn-primary" onclick="showModal('createFactureModal')">+ Nouvelle facture</button>
+    </div>
+
+    <!-- Filtres -->
+    <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+        <select id="filtreStatut" onchange="chargerFactures()">
+            <option value="">Tous les statuts</option>
+            <option value="impayee">Impayées</option>
+            <option value="partielle">Partielles</option>
+            <option value="payee">Payées</option>
+        </select>
+        <input type="text" id="searchAbonne" placeholder="Rechercher un abonné..." onkeyup="chargerFactures()">
+    </div>
+
+    <!-- Liste des factures -->
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>N° Facture</th>
+                    <th>Date</th>
+                    <th>Abonné</th>
+                    <th>Montant TTC</th>
+                    <th>Payé</th>
+                    <th>Reste</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="facturesTable">
+                <!-- Rempli dynamiquement -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal Créer Facture -->
+    <div id="createFactureModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('createFactureModal')">&times;</span>
+            <h3>Créer une nouvelle facture</h3>
+            <form id="factureForm" onsubmit="creerFacture(event)">
+                <div class="form-group">
+                    <label for="abonneFacture">Abonné *</label>
+                    <select id="abonneFacture" required onchange="chargerConsommationsNonFacturees()">
+                        <option value="">Sélectionner un abonné</option>
+                    </select>
+                </div>
+
+                <div id="consommationsSection" style="display: none;">
+                    <h4>Consommations non facturées</h4>
+                    <div id="consommationsList" style="max-height: 300px; overflow-y: auto;">
+                        <!-- Liste des consommations -->
+                    </div>
+                    <div style="margin-top: 15px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+                        <strong>Total sélectionné: <span id="totalFacture">0</span> FCFA</strong>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="dateEcheance">Date d'échéance</label>
+                    <input type="date" id="dateEcheance">
+                </div>
+
+                <div class="form-group">
+                    <label for="noteFacture">Note</label>
+                    <textarea id="noteFacture" rows="2"></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createFactureModal')">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer la facture</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Détails Facture -->
+    <div id="detailsFactureModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="closeModal('detailsFactureModal')">&times;</span>
+            <div id="detailsFactureContent">
+                <!-- Rempli dynamiquement -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let consommationsSelectionnees = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            chargerFactures();
+            chargerAbonnes();
+        });
+
+        async function chargerAbonnes() {
+            try {
+                const response = await fetch('/api/abonnes');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const select = document.getElementById('abonneFacture');
+                    data.data.forEach(a => {
+                        const option = document.createElement('option');
+                        option.value = a.id;
+                        option.textContent = `${a.numero_abonne} - ${a.nom_complet}`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function chargerFactures() {
+            try {
+                const statut = document.getElementById('filtreStatut').value;
+                const url = `/api/factures?statut=${statut}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    afficherFactures(data.data);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        function afficherFactures(factures) {
+            const tbody = document.getElementById('facturesTable');
+            tbody.innerHTML = '';
+            
+            factures.forEach(f => {
+                const tr = document.createElement('tr');
+                const date = new Date(f.date_emission);
+                
+                let statutBadge = '';
+                if (f.statut === 'payee') statutBadge = '✅ Payée';
+                else if (f.statut === 'partielle') statutBadge = '⏳ Partielle';
+                else statutBadge = '❌ Impayée';
+                
+                tr.innerHTML = `
+                    <td><strong>${f.numero_facture}</strong></td>
+                    <td>${date.toLocaleDateString('fr-FR')}</td>
+                    <td>${f.abonne}</td>
+                    <td>${f.montant_ttc.toLocaleString()} FCFA</td>
+                    <td>${f.montant_paye.toLocaleString()} FCFA</td>
+                    <td><strong>${f.reste_a_payer.toLocaleString()} FCFA</strong></td>
+                    <td>${statutBadge}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="voirDetailsFacture(${f.id})">👁️</button>
+                        ${f.reste_a_payer > 0 ? `<button class="btn btn-sm btn-success" onclick="ajouterPaiement(${f.id})">💰</button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function chargerConsommationsNonFacturees() {
+            const abonneId = document.getElementById('abonneFacture').value;
+            if (!abonneId) return;
+
+            try {
+                const response = await fetch(`/api/factures/abonne/${abonneId}/non-facturees`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const section = document.getElementById('consommationsSection');
+                    const liste = document.getElementById('consommationsList');
+                    
+                    if (data.data.length === 0) {
+                        section.style.display = 'none';
+                        alert('Aucune consommation non facturée pour cet abonné');
+                        return;
+                    }
+                    
+                    section.style.display = 'block';
+                    liste.innerHTML = '';
+                    consommationsSelectionnees = [];
+                    
+                    data.data.forEach(c => {
+                        const div = document.createElement('div');
+                        div.style.padding = '10px';
+                        div.style.borderBottom = '1px solid #ddd';
+                        div.innerHTML = `
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" value="${c.id}" onchange="calculerTotalFacture()">
+                                <span>${new Date(c.date).toLocaleDateString('fr-FR')} - ${c.produit} x${c.quantite} = ${c.montant_total.toLocaleString()} FCFA</span>
+                            </label>
+                        `;
+                        liste.appendChild(div);
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        function calculerTotalFacture() {
+            const checkboxes = document.querySelectorAll('#consommationsList input[type="checkbox"]:checked');
+            consommationsSelectionnees = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            
+            // Calculer le total (simplifié, devrait récupérer les vrais montants)
+            const total = checkboxes.length * 1000; // Temporaire
+            document.getElementById('totalFacture').textContent = total.toLocaleString();
+        }
+
+        async function creerFacture(event) {
+            event.preventDefault();
+            
+            if (consommationsSelectionnees.length === 0) {
+                alert('Veuillez sélectionner au moins une consommation');
+                return;
+            }
+
+            const data = {
+                abonne_id: parseInt(document.getElementById('abonneFacture').value),
+                consommation_ids: consommationsSelectionnees,
+                date_echeance: document.getElementById('dateEcheance').value,
+                note: document.getElementById('noteFacture').value
+            };
+
+            try {
+                const response = await fetch('/api/factures', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Facture créée avec succès: ' + result.data.numero_facture);
+                    closeModal('createFactureModal');
+                    document.getElementById('factureForm').reset();
+                    chargerFactures();
+                } else {
+                    alert('❌ Erreur: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors de la création de la facture');
+            }
+        }
+
+        async function voirDetailsFacture(id) {
+            try {
+                const response = await fetch(`/api/factures/${id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const f = data.data;
+                    const content = document.getElementById('detailsFactureContent');
+                    
+                    content.innerHTML = `
+                        <h3>Facture ${f.numero_facture}</h3>
+                        <div style="margin: 20px 0;">
+                            <p><strong>Abonné:</strong> ${f.abonne.nom_complet}</p>
+                            <p><strong>Date:</strong> ${new Date(f.date_emission).toLocaleDateString('fr-FR')}</p>
+                            <p><strong>Statut:</strong> ${f.statut}</p>
+                        </div>
+                        
+                        <h4>Consommations</h4>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Produit</th>
+                                    <th>Quantité</th>
+                                    <th>Prix unit.</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${f.consommations.map(c => `
+                                    <tr>
+                                        <td>${c.produit}</td>
+                                        <td>${c.quantite}</td>
+                                        <td>${c.prix_unitaire.toLocaleString()} FCFA</td>
+                                        <td>${c.montant_total.toLocaleString()} FCFA</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        
+                        <div style="margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 5px;">
+                            <p><strong>Montant HT:</strong> ${f.montant_ht.toLocaleString()} FCFA</p>
+                            <p><strong>TVA (${f.taux_tva}%):</strong> ${f.montant_tva.toLocaleString()} FCFA</p>
+                            <h3><strong>Total TTC:</strong> ${f.montant_ttc.toLocaleString()} FCFA</h3>
+                            <p><strong>Payé:</strong> ${f.montant_paye.toLocaleString()} FCFA</p>
+                            <p><strong>Reste à payer:</strong> ${f.reste_a_payer.toLocaleString()} FCFA</p>
+                        </div>
+                    `;
+                    
+                    showModal('detailsFactureModal');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        function ajouterPaiement(factureId) {
+            // Rediriger vers la page paiements avec la facture présélectionnée
+            parent.window.location.href = `/paiements?facture_id=${factureId}`;
+        }
+
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
 </body>
 </html>

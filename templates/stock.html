@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion du stock</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="page-content">
+    <div class="page-header">
+        <h2>📋 Gestion du stock</h2>
+    </div>
+
+    <!-- Actions rapides -->
+    <div class="dashboard-section">
+        <h3>Actions rapides</h3>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-success" onclick="showModal('entreeModal')">📥 Entrée de stock</button>
+            <button class="btn btn-warning" onclick="showModal('sortieModal')">📤 Sortie de stock</button>
+            <button class="btn btn-info" onclick="showModal('ajustementModal')">🔧 Ajustement</button>
+        </div>
+    </div>
+
+    <!-- Alertes stock -->
+    <div class="dashboard-section">
+        <h3>⚠️ Produits en stock critique</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Produit</th>
+                        <th>Stock actuel</th>
+                        <th>Seuil d'alerte</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="alertesTable">
+                    <!-- Rempli dynamiquement -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Historique des mouvements -->
+    <div class="dashboard-section">
+        <h3>📜 Historique des mouvements</h3>
+        <div class="table-responsive">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Produit</th>
+                        <th>Type</th>
+                        <th>Quantité</th>
+                        <th>Stock avant</th>
+                        <th>Stock après</th>
+                        <th>Utilisateur</th>
+                        <th>Commentaire</th>
+                    </tr>
+                </thead>
+                <tbody id="mouvementsTable">
+                    <!-- Rempli dynamiquement -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal Entrée de stock -->
+    <div id="entreeModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('entreeModal')">&times;</span>
+            <h3>📥 Entrée de stock</h3>
+            <form id="entreeForm" onsubmit="enregistrerEntree(event)">
+                <div class="form-group">
+                    <label for="produitEntree">Produit *</label>
+                    <select id="produitEntree" required>
+                        <option value="">Sélectionner un produit</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="quantiteEntree">Quantité *</label>
+                    <input type="number" id="quantiteEntree" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="referenceEntree">Référence (N° BC, facture...)</label>
+                    <input type="text" id="referenceEntree">
+                </div>
+                <div class="form-group">
+                    <label for="commentaireEntree">Commentaire</label>
+                    <textarea id="commentaireEntree" rows="2"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('entreeModal')">Annuler</button>
+                    <button type="submit" class="btn btn-success">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Sortie de stock -->
+    <div id="sortieModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('sortieModal')">&times;</span>
+            <h3>📤 Sortie de stock</h3>
+            <form id="sortieForm" onsubmit="enregistrerSortie(event)">
+                <div class="form-group">
+                    <label for="produitSortie">Produit *</label>
+                    <select id="produitSortie" required>
+                        <option value="">Sélectionner un produit</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="quantiteSortie">Quantité *</label>
+                    <input type="number" id="quantiteSortie" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="commentaireSortie">Raison *</label>
+                    <textarea id="commentaireSortie" rows="2" required placeholder="Ex: Perte, casse, don..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('sortieModal')">Annuler</button>
+                    <button type="submit" class="btn btn-warning">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Ajustement -->
+    <div id="ajustementModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('ajustementModal')">&times;</span>
+            <h3>🔧 Ajustement de stock</h3>
+            <form id="ajustementForm" onsubmit="enregistrerAjustement(event)">
+                <div class="form-group">
+                    <label for="produitAjust">Produit *</label>
+                    <select id="produitAjust" required onchange="afficherStockActuel()">
+                        <option value="">Sélectionner un produit</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Stock actuel</label>
+                    <input type="text" id="stockActuel" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="nouveauStock">Nouveau stock *</label>
+                    <input type="number" id="nouveauStock" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label for="commentaireAjust">Commentaire *</label>
+                    <textarea id="commentaireAjust" rows="2" required placeholder="Ex: Inventaire physique..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('ajustementModal')">Annuler</button>
+                    <button type="submit" class="btn btn-info">Ajuster</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let produits = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            chargerProduits();
+            chargerAlertes();
+            chargerMouvements();
+        });
+
+        async function chargerProduits() {
+            try {
+                const response = await fetch('/api/produits');
+                const data = await response.json();
+                
+                if (data.success) {
+                    produits = data.data;
+                    ['produitEntree', 'produitSortie', 'produitAjust'].forEach(selectId => {
+                        const select = document.getElementById(selectId);
+                        select.innerHTML = '<option value="">Sélectionner un produit</option>';
+                        data.data.forEach(p => {
+                            const option = document.createElement('option');
+                            option.value = p.id;
+                            option.dataset.stock = p.stock;
+                            option.textContent = `${p.nom} (Stock: ${p.stock})`;
+                            select.appendChild(option);
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function chargerAlertes() {
+            try {
+                const response = await fetch('/api/stock/alertes');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const tbody = document.getElementById('alertesTable');
+                    tbody.innerHTML = '';
+                    
+                    if (data.data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">✅ Aucun stock critique</td></tr>';
+                    } else {
+                        data.data.forEach(p => {
+                            const tr = document.createElement('tr');
+                            tr.className = 'row-alert';
+                            tr.innerHTML = `
+                                <td>${p.nom}</td>
+                                <td><strong>${p.stock} ${p.unite}</strong></td>
+                                <td>${p.stock_alerte} ${p.unite}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-success" onclick="reapprovisionnerRapide(${p.id})">📥 Réappro</button>
+                                </td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function chargerMouvements() {
+            try {
+                const response = await fetch('/api/stock/mouvements');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const tbody = document.getElementById('mouvementsTable');
+                    tbody.innerHTML = '';
+                    
+                    data.data.slice(0, 20).forEach(m => {
+                        const tr = document.createElement('tr');
+                        const date = new Date(m.date);
+                        const typeClass = m.type_mouvement === 'entree' ? 'success' : 'warning';
+                        tr.innerHTML = `
+                            <td>${date.toLocaleString('fr-FR')}</td>
+                            <td>${m.produit}</td>
+                            <td><span class="badge badge-${typeClass}">${m.type_mouvement}</span></td>
+                            <td>${m.quantite}</td>
+                            <td>${m.stock_avant}</td>
+                            <td><strong>${m.stock_apres}</strong></td>
+                            <td>${m.utilisateur}</td>
+                            <td>${m.commentaire}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function enregistrerEntree(event) {
+            event.preventDefault();
+            
+            const data = {
+                produit_id: parseInt(document.getElementById('produitEntree').value),
+                quantite: parseInt(document.getElementById('quantiteEntree').value),
+                reference: document.getElementById('referenceEntree').value,
+                commentaire: document.getElementById('commentaireEntree').value
+            };
+
+            try {
+                const response = await fetch('/api/stock/entree', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ ' + result.message);
+                    closeModal('entreeModal');
+                    document.getElementById('entreeForm').reset();
+                    chargerProduits();
+                    chargerAlertes();
+                    chargerMouvements();
+                } else {
+                    alert('❌ Erreur: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function enregistrerSortie(event) {
+            event.preventDefault();
+            
+            const data = {
+                produit_id: parseInt(document.getElementById('produitSortie').value),
+                quantite: parseInt(document.getElementById('quantiteSortie').value),
+                commentaire: document.getElementById('commentaireSortie').value
+            };
+
+            try {
+                const response = await fetch('/api/stock/sortie', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ ' + result.message);
+                    closeModal('sortieModal');
+                    document.getElementById('sortieForm').reset();
+                    chargerProduits();
+                    chargerAlertes();
+                    chargerMouvements();
+                } else {
+                    alert('❌ Erreur: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        async function enregistrerAjustement(event) {
+            event.preventDefault();
+            
+            const data = {
+                produit_id: parseInt(document.getElementById('produitAjust').value),
+                nouveau_stock: parseInt(document.getElementById('nouveauStock').value),
+                commentaire: document.getElementById('commentaireAjust').value
+            };
+
+            try {
+                const response = await fetch('/api/stock/ajustement', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ ' + result.message);
+                    closeModal('ajustementModal');
+                    document.getElementById('ajustementForm').reset();
+                    chargerProduits();
+                    chargerAlertes();
+                    chargerMouvements();
+                } else {
+                    alert('❌ Erreur: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        function afficherStockActuel() {
+            const select = document.getElementById('produitAjust');
+            const selectedOption = select.options[select.selectedIndex];
+            if (selectedOption && selectedOption.dataset.stock) {
+                document.getElementById('stockActuel').value = selectedOption.dataset.stock;
+            }
+        }
+
+        function reapprovisionnerRapide(produitId) {
+            document.getElementById('produitEntree').value = produitId;
+            showModal('entreeModal');
+        }
+
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
