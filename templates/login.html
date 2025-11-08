@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Connexion - Cave à Vin</title>
+    <style>
+        body {font-family: sans-serif; background:#f0f0f0; display:flex; align-items:center; justify-content:center; height:100vh;}
+        .login-box {background:white; padding:30px; border-radius:10px; width:300px; box-shadow:0 0 10px rgba(0,0,0,0.1);}
+        h2 {text-align:center; margin-bottom:20px;}
+        input {width:100%; padding:8px; margin:6px 0; border:1px solid #ccc; border-radius:5px;}
+        button {width:100%; padding:8px; background:#800000; color:white; border:none; border-radius:5px; cursor:pointer;}
+        button:hover {background:#a00000;}
+        .error {color:red; text-align:center; margin-top:10px;}
+    </style>
+</head>
+<body>
+    <form class="login-box" method="POST">
+        <h2>Cave à Vin</h2>
+        <input type="text" name="username" placeholder="Nom d'utilisateur" required>
+        <input type="password" name="password" placeholder="Mot de passe" required>
+        <button type="submit">Se connecter</button>
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+    </form>
+</body>
+</html>

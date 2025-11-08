@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tableau de bord - Cave à Vin</title>
+   
+    <script>
+        function openTab(tabName) {
+            const tabs = document.querySelectorAll(".tab");
+            tabs.forEach(t => t.classList.remove("active"));
+            event.target.classList.add("active");
+            document.getElementById("content-frame").src = tabName;
+        }
+        window.onload = () => {
+            document.getElementById("content-frame").src = "dashboard";
+        };
+    </script>
+</head>
+<body>
+    <div class="navbar">
+        <div class="tab active" onclick="openTab('dashboard')">Tableau de bord</div>
+        <div class="tab" onclick="openTab('abonnes')">Abonnés</div>
+        <div class="tab" onclick="openTab('consommations')">Consommations</div>
+        <div class="tab" onclick="openTab('factures')">Factures</div>
+        <div class="tab" onclick="openTab('paiements')">Paiements</div>
+    </div>
+    <div class="content">
+        <iframe id="content-frame"></iframe>
+    </div>
+</body>
+</html>
