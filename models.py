@@ -175,8 +175,8 @@ class Facture(db.Model):
     def calculer_montants(self):
         """Calcul automatique des montants HT, TVA et TTC"""
         self.montant_ht = sum(c.montant_total for c in self.consommations)
-        self.montant_tva = self.montant_ht * (self.taux_tva / 100)
-        self.montant_ttc = self.montant_ht + self.montant_tva
+        #self.montant_tva = self.montant_ht * (self.taux_tva / 100)
+        self.montant_ttc = self.montant_ht 
     
     @property
     def montant_paye(self):

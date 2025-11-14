@@ -138,7 +138,6 @@ def create_facture():
         facture = Facture(
             numero_facture=numero_facture,
             abonne_id=data['abonne_id'],
-            taux_tva=data.get('taux_tva', 18.0),
             date_echeance=datetime.fromisoformat(data['date_echeance']) if data.get('date_echeance') else datetime.now() + timedelta(days=30),
             created_by_id=current_user.id,
             note=data.get('note', '')
