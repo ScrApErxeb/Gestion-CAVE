@@ -42,10 +42,19 @@ def init_database():
                 username='admin',
                 role='admin',
                 nom_complet='Administrateur'
-            )
+            ),
+            vendeur = User(
+                username='vendeur',
+                role='vendeur',
+                nom_complet='Vendeur')
+
+
             admin.set_password('admin123')
+            vendeur.set_password('vendeur123')
+
             db.session.add(admin)
-            
+            db.session.add(vendeur)
+
             # Paramètres par défaut
             params = ParametresGlobaux(
                 nom_cave='Cave Gestion',

@@ -15,7 +15,7 @@ def enregistrer_consommation(abonne_id, produit_id, quantite, utilisateur_id=Non
     conso_id = create("consommations", data, utilisateur_id)
 
     # 2. Décrémenter le stock
-    _mouvement_stock(produit_id, "SORTIE", quantite, "Vente", utilisateur_id)
+    # _mouvement_stock(produit_id, "SORTIE", quantite, "Vente", utilisateur_id)
 
     # 3. Créer ou mettre à jour la facture courante de l’abonné
     facture_id = _facture_active(abonne_id)
@@ -29,15 +29,13 @@ def enregistrer_consommation(abonne_id, produit_id, quantite, utilisateur_id=Non
 
 # --- Création d’une facture ---
 def creer_facture(abonne_id, utilisateur_id=None):
-    numero = datetime.now().strftime("FAC-%Y-%m%d-%H%M%S")
     data = {
-        "numero_facture": numero,
         "abonne_id": abonne_id,
         "montant_total": 0.0,
         "statut": "en_attente"
     }
     facture_id = create("factures", data, utilisateur_id)
-    log_action(utilisateur_id, "FACTURE_CREATE", f"Facture {numero} créée pour abonné {abonne_id}")
+    log_action(utilisateur_id, "FACTURE_CREATE", f"Facture {facture_id} créée pour abonné {abonne_id}")
     return facture_id
 
 # --- Ajouter un produit à une facture ---
@@ -63,7 +61,7 @@ def payer_facture(facture_id, montant, mode, utilisateur_id=None):
     paiement_id = create("paiements", data, utilisateur_id)
 
     # Mise à jour compta (recette)
-    enregistrer_recette(montant, f"FAC#{facture_id}", f"Paiement via {mode}")
+   # enregistrer_recette(montant, f"FAC#{facture_id}", f"Paiement via {mode}")
 
     # Passage de la facture à payée
     update("factures", {"statut": "payee"}, {"id": facture_id})
