@@ -92,7 +92,7 @@ def login():
         
         if user and user.check_password(password):
             login_user(user)
-            flash(f'Bienvenue {user.nom_complet or user.username}!', 'success')
+            # flash(f'Bienvenue {user.nom_complet or user.username}!', 'success')
             return redirect(url_for('home'))
         else:
             flash('Identifiants incorrects', 'error')

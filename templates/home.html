@@ -14,7 +14,7 @@
                 <h1>🍷 Cave Gestion</h1>
             </div>
             <div class="header-right">
-                <span class="user-info">👤 {{ user.nom_complet or user.username }}</span>
+                <span class="user-info">👤 {{ user.username }}</span>
                 <span class="user-role">({{ user.role }})</span>
                 <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">Déconnexion</a>
             </div>

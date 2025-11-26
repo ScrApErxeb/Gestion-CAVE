@@ -101,8 +101,6 @@ class Produit(db.Model):
     def stock_critique(self):
         return self.stock <= self.stock_alerte
     
-
-
 class Abonne(db.Model):
     """Abonnés de la cave"""
     __tablename__ = 'abonne'

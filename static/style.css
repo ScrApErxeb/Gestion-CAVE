@@ -365,6 +365,10 @@ body {
     border-bottom: 4px solid var(--warning-color);
 
 }
+.Version {
+    border-bottom: 4px solid var(--warning-color);
+
+}
 
 /* ===== SECTIONS DASHBOARD ===== */
 .dashboard-section {
