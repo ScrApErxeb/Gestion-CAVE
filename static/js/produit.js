@@ -32,7 +32,7 @@ function afficherProduits(produits) {
 
     produits.forEach(p => {
 
-        // 🟥 TABLEAU DES PRODUITS EN STOCK CRITIQUE
+        // 🟥 PRODUITS CRITIQUES
         if (p.stock_critique) {
             const trc = document.createElement('tr');
             trc.className = "row-alert";
@@ -49,7 +49,7 @@ function afficherProduits(produits) {
             alertTbody.appendChild(trc);
         }
 
-        // 🟦 TABLEAU GLOBAL DES PRODUITS
+        // 🟦 PRODUITS GLOBAUX
         const tr = document.createElement('tr');
         if (p.stock_critique) tr.classList.add('row-alert');
 
@@ -87,8 +87,8 @@ async function saveProduit(event) {
 
     const id = document.getElementById('produitId').value;
     const data = {
-        nom: document.getElementById('nom').value,
-        type: document.getElementById('type').value,
+        nom: document.getElementById('nom').value.trim(),
+        type: document.getElementById('type').value.trim(),
         prix_achat: parseFloat(document.getElementById('prix_achat').value),
         prix_vente: parseFloat(document.getElementById('prix_vente').value),
         stock: parseInt(document.getElementById('stock').value),
@@ -106,6 +106,13 @@ async function saveProduit(event) {
             body: JSON.stringify(data)
         });
 
+        // ➤ SI HTTP ≠ 200-299 → ERREUR
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({ error: "Erreur inconnue" }));
+            alert("Erreur : " + err.error);
+            return;
+        }
+
         const result = await response.json();
 
         if (result.success) {
@@ -113,13 +120,16 @@ async function saveProduit(event) {
             closeModal('addProduitModal');
             chargerProduits();
         } else {
-            alert('Erreur: ' + result.error);
+            // ➤ Erreur renvoyée par l’API
+            alert("Erreur : " + result.error);
         }
+
     } catch (error) {
         console.error('Erreur:', error);
-        alert('Erreur lors de l\'enregistrement');
+        alert("Erreur réseau ou interne.");
     }
 }
+
 
 async function modifierProduit(id) {
     try {

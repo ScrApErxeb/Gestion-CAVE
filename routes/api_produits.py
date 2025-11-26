@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from models import db, Produit, Categorie, Fournisseur
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
+
 
 produits_bp = Blueprint('produits', __name__)
 
@@ -100,6 +102,9 @@ def get_produit(id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+from sqlalchemy.exc import IntegrityError, DataError
+
 @produits_bp.route('/produits', methods=['POST'])
 @login_required
 def create_produit():
@@ -109,22 +114,23 @@ def create_produit():
     try:
         data = request.get_json()
 
-        # Validation des champs numériques
+        # Validation numérique
         try:
             prix_vente = float(data['prix_vente'])
             prix_achat = float(data.get('prix_achat', 0))
             stock = int(data.get('stock', 0))
             stock_alerte = int(data.get('stock_alerte', 10))
         except (ValueError, TypeError):
-            return jsonify({'success': False, 'error': 'Prix, stock et stock alerte doivent être des nombres valides'}), 400
+            return jsonify({'success': False, 'error': 'Valeurs numériques invalides'}), 400
 
-        # Vérifier l'existence de la catégorie et du fournisseur
+        # Vérif catégorie/fournisseur
         if data.get('categorie_id') and not Categorie.query.get(data['categorie_id']):
             return jsonify({'success': False, 'error': 'Catégorie invalide'}), 400
+
         if data.get('fournisseur_id') and not Fournisseur.query.get(data['fournisseur_id']):
             return jsonify({'success': False, 'error': 'Fournisseur invalide'}), 400
 
-        # Générer un code produit si nécessaire
+        # Vérif code produit unique
         if data.get('code_produit'):
             if Produit.query.filter_by(code_produit=data['code_produit']).first():
                 return jsonify({'success': False, 'error': 'Code produit déjà utilisé'}), 400
@@ -133,36 +139,45 @@ def create_produit():
             prochain_num = (dernier.id + 1) if dernier else 1
             data['code_produit'] = f'PRD{prochain_num:05d}'
 
-        # Créer le produit sans setter marge/marge_pourcentage
+        # Vérif NOM + TYPE — empêcher doublons
+        if Produit.query.filter_by(nom=data['nom'], type=data.get('type')).first():
+            return jsonify({'success': False, 'error': 'Ce produit existe déjà pour ce type'}), 400
+
         produit = Produit(
-        code_produit=data['code_produit'],
-        nom=data['nom'],
-        type=data.get('type', ''),
-        prix_achat=prix_achat,
-        prix_vente=prix_vente,
-        stock=stock,
-        stock_alerte=stock_alerte,
-        unite=data.get('unite', 'unité'),
-        categorie_id=data.get('categorie_id'),
-        fournisseur_id=data.get('fournisseur_id')
-    )
+            code_produit=data['code_produit'],
+            nom=data['nom'],
+            type=data.get('type', ''),
+            prix_achat=prix_achat,
+            prix_vente=prix_vente,
+            stock=stock,
+            stock_alerte=stock_alerte,
+            unite=data.get('unite', 'unité'),
+            categorie_id=data.get('categorie_id'),
+            fournisseur_id=data.get('fournisseur_id')
+        )
 
         db.session.add(produit)
         db.session.commit()
 
-        return jsonify({
-            'success': True,
-            'message': 'Produit créé avec succès',
-            'data': {
-                'id': produit.id,
-                'code_produit': produit.code_produit,
-                'nom': produit.nom
-            }
-        }), 201
+        return jsonify({'success': True, 'message': 'Produit créé avec succès'})
+
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Conflit de données — produit déjà existant'}), 400
+    
+    except DataError:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Données trop longues ou invalides'}), 400
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Erreur serveur'}), 500
+
+
+
+
+
+
 
 @produits_bp.route('/produits/<int:id>', methods=['PUT'])
 @login_required
@@ -174,53 +189,47 @@ def update_produit(id):
         produit = Produit.query.get_or_404(id)
         data = request.get_json()
 
-        # Mise à jour des champs numériques
-        if 'prix_vente' in data:
-            try:
-                produit.prix_vente = float(data['prix_vente'])
-            except ValueError:
-                return jsonify({'success': False, 'error': 'Prix vente invalide'}), 400
-        if 'prix_achat' in data:
-            try:
-                produit.prix_achat = float(data['prix_achat'])
-            except ValueError:
-                return jsonify({'success': False, 'error': 'Prix achat invalide'}), 400
-        if 'stock' in data:
-            try:
-                produit.stock = int(data['stock'])
-            except ValueError:
-                return jsonify({'success': False, 'error': 'Stock invalide'}), 400
-        if 'stock_alerte' in data:
-            try:
-                produit.stock_alerte = int(data['stock_alerte'])
-            except ValueError:
-                return jsonify({'success': False, 'error': 'Stock alerte invalide'}), 400
+        # Mise à jour numériques
+        try:
+            if 'prix_vente' in data: produit.prix_vente = float(data['prix_vente'])
+            if 'prix_achat' in data: produit.prix_achat = float(data['prix_achat'])
+            if 'stock' in data: produit.stock = int(data['stock'])
+            if 'stock_alerte' in data: produit.stock_alerte = int(data['stock_alerte'])
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Valeur numérique invalide'}), 400
 
-        # Vérifier existence catégorie/fournisseur
-        if 'categorie_id' in data and data['categorie_id']:
-            if not Categorie.query.get(data['categorie_id']):
+        # Catégorie / fournisseur
+        if 'categorie_id' in data:
+            if data['categorie_id'] and not Categorie.query.get(data['categorie_id']):
                 return jsonify({'success': False, 'error': 'Catégorie invalide'}), 400
             produit.categorie_id = data['categorie_id']
 
-        if 'fournisseur_id' in data and data['fournisseur_id']:
-            if not Fournisseur.query.get(data['fournisseur_id']):
+        if 'fournisseur_id' in data:
+            if data['fournisseur_id'] and not Fournisseur.query.get(data['fournisseur_id']):
                 return jsonify({'success': False, 'error': 'Fournisseur invalide'}), 400
             produit.fournisseur_id = data['fournisseur_id']
 
-        # Mise à jour des autres champs
+        # Autres champs
         for champ in ['nom', 'type', 'unite', 'actif']:
             if champ in data:
                 setattr(produit, champ, data[champ])
 
-        # Recalcul automatique de la marge
-
         db.session.commit()
 
-        return jsonify({'success': True, 'message': 'Produit mis à jour avec succès', 'data': {'id': produit.id, 'code_produit': produit.code_produit, 'nom': produit.nom}})
+        return jsonify({
+            'success': True,
+            'message': 'Produit mis à jour avec succès',
+            'data': {'id': produit.id, 'code_produit': produit.code_produit, 'nom': produit.nom}
+        })
+
+    except IntegrityError:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': 'Un produit avec ce nom et ce type existe déjà.'}), 409
 
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @produits_bp.route('/produits/<int:id>', methods=['DELETE'])
 @login_required

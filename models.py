@@ -82,6 +82,10 @@ class Produit(db.Model):
     # Relations
     consommations = db.relationship('Consommation', backref='produit', lazy=True)
     mouvements_stock = db.relationship('StockLog', backref='produit', lazy=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('nom', 'type', name='uq_nom_type'),
+    )
     
     @property
     def marge(self):
@@ -96,6 +100,7 @@ class Produit(db.Model):
     @property
     def stock_critique(self):
         return self.stock <= self.stock_alerte
+    
 
 
 class Abonne(db.Model):
