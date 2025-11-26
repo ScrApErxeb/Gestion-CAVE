@@ -17,18 +17,23 @@ async function chargerAbonnes() {
     try {
         const res = await fetch('/api/abonnes');
         const data = await res.json();
-        if (!data.success) return;
-        abonnes = data.data;
-        const select = document.getElementById('abonne');
-        select.innerHTML = '<option value="">Sélectionner un abonné</option>';
-        abonnes.forEach(a => {
-            const opt = document.createElement('option');
-            opt.value = a.id;
-            opt.textContent = `${a.numero_abonne} - ${a.nom_complet}`;
-            select.appendChild(opt);
-        });
-    } catch (e) { console.error(e); }
+        if (data.success) {
+            const select = document.getElementById('abonne');
+            select.innerHTML = '<option value="">Sélectionner un abonné</option>';
+            
+            data.data.forEach((a, index) => {
+                const option = document.createElement('option');
+                option.value = a.id;
+                option.textContent = `${a.numero_abonne} - ${a.nom_complet}`;
+                if(index === 0) option.selected = true; // <-- premier abonné sélectionné
+                select.appendChild(option);
+            });
+        }
+    } catch (e) {
+        console.error(e);
+    }
 }
+
 
 async function chargerProduits() {
     try {
