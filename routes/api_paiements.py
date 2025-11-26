@@ -83,56 +83,31 @@ def get_paiement(id):
 @paiements_bp.route('/paiements', methods=['POST'])
 @login_required
 def create_paiement():
-    """Enregistrer un nouveau paiement"""
-    if not current_user.has_permission('paiements'):
-        return jsonify({'success': False, 'error': 'Permission refusée'}), 403
-    
     try:
         data = request.get_json()
-        
-        # Validation
-        if not data.get('facture_id') or not data.get('montant') or not data.get('mode_paiement'):
-            return jsonify({'success': False, 'error': 'Facture, montant et mode de paiement obligatoires'}), 400
-        
-        facture = Facture.query.get_or_404(data['facture_id'])
-        
-        # Vérifier que le montant ne dépasse pas le reste à payer
-        montant = float(data['montant'])
-        if montant > facture.reste_a_payer:
-            return jsonify({
-                'success': False,
-                'error': f'Montant supérieur au reste à payer ({facture.reste_a_payer} FCFA)'
-            }), 400
-        
-        # Créer le paiement
+        facture_id = data.get('facture_id')
+        montant = data.get('montant')
+        mode_paiement = data.get('mode_paiement')
+        reference = data.get('reference')
+        note = data.get('note', '')
+
         paiement = Paiement(
-            facture_id=data['facture_id'],
+            facture_id=facture_id,
             montant=montant,
-            mode_paiement=data['mode_paiement'],
-            reference=data.get('reference', ''),
-            date_paiement=datetime.fromisoformat(data['date_paiement']) if data.get('date_paiement') else datetime.now(),
-            recu_par=data.get('recu_par', current_user.nom_complet or current_user.username),
-            note=data.get('note', '')
+            mode_paiement=mode_paiement,
+            reference=reference,
+            recu_par=current_user.username,  # <-- ici !
+            note=note
         )
-        
-        db.session.add(paiement)  
-        #
-        
-        # Mettre à jour le statut de la facture
-        facture.mettre_a_jour_statut()
-        
+
+        db.session.add(paiement)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
-            'message': 'Paiement enregistré avec succès',
-            'data': {
-                'id': paiement.id,
-                'montant': paiement.montant,
-                'facture_statut': facture.statut,
-                'reste_a_payer': facture.reste_a_payer
-            }
-        }), 201
+            'paiement_id': paiement.id,
+            'user_actif': current_user.username  # <-- renvoyer le user actif
+        })
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500

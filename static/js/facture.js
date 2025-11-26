@@ -1,4 +1,5 @@
 let consommationsSelectionnees = [];
+window.facturesImpayees = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     chargerAbonnes();
@@ -26,17 +27,32 @@ async function chargerFactures() {
         const statut = document.getElementById('filtreStatut').value;
         const res = await fetch(`/api/factures?statut=${statut}`);
         const data = await res.json();
-        if(data.success) afficherFactures(data.data);
+        if(data.success){
+            window.facturesImpayees = data.data; // ⚡ mettre à jour la variable globale
+            afficherFactures();                 // pas besoin de passer de paramètre
+        }
     } catch(e){ console.error(e); }
 }
 
-function afficherFactures(factures) {
+
+
+function afficherFactures() {
     const tbody = document.getElementById('facturesTable');
     tbody.innerHTML = '';
-    factures.forEach(f => {
+
+    window.facturesImpayees.forEach(f => {
         const tr = document.createElement('tr');
         const date = new Date(f.date_emission);
-        let statutBadge = f.statut === 'payee' ? '✅ Payée' : f.statut === 'partielle' ? '⏳ Partielle' : '❌ Impayée';
+
+        let statutBadge;
+        if (f.montant_paye >= f.montant_ttc) {
+            statutBadge = '✅ Payée';
+        } else if (f.montant_paye > 0) {
+            statutBadge = '⏳ Partielle';
+        } else {
+            statutBadge = '❌ Impayée';
+        }
+
         tr.innerHTML = `
             <td>${f.numero_facture}</td>
             <td>${date.toLocaleDateString('fr-FR')}</td>
@@ -45,14 +61,74 @@ function afficherFactures(factures) {
             <td>${f.montant_paye.toLocaleString()} FCFA</td>
             <td>${f.reste_a_payer.toLocaleString()} FCFA</td>
             <td>${statutBadge}</td>
-            <td>
-                <button class="btn btn-info" onclick="voirDetailsFacture(${f.id})">👁️</button>
-                ${f.reste_a_payer>0?`<button class="btn btn-primary" onclick="ajouterPaiement(${f.id})">💰</button>`:''}
-            </td>
+            <td></td>
         `;
         tbody.appendChild(tr);
+
+        // Boutons actions
+        const tdActions = tr.querySelector('td:last-child');
+        const btnVoir = document.createElement('button');
+        btnVoir.className = 'btn btn-info';
+        btnVoir.textContent = '👁️';
+        btnVoir.addEventListener('click', () => voirDetailsFacture(f.id));
+        tdActions.appendChild(btnVoir);
+
+        if(f.reste_a_payer > 0){
+            const btnPaiement = document.createElement('button');
+            btnPaiement.className = 'btn btn-primary';
+            btnPaiement.textContent = '💰';
+            btnPaiement.addEventListener('click', () => ajouterPaiement(f.id));
+            tdActions.appendChild(btnPaiement);
+        }
     });
 }
+
+
+function voirDetailsFacture(factureId) {
+    const facture = window.facturesImpayees.find(f => f.id === factureId);
+    if(!facture) return;
+
+    document.getElementById('modalFactureAbonne').textContent = facture.abonne;
+    document.getElementById('modalFactureMontant').textContent = facture.montant_ttc.toLocaleString();
+    document.getElementById('modalFacturePaye').textContent = facture.montant_paye.toLocaleString();
+    document.getElementById('modalFactureReste').textContent = facture.reste_a_payer.toLocaleString();
+    document.getElementById('modalFactureDate').textContent = new Date(facture.date_emission).toLocaleDateString('fr-FR');
+    document.getElementById('modalFactureMode').textContent = facture.mode_paiement || '-';
+    document.getElementById('modalFactureRef').textContent = facture.reference || '-';
+    document.getElementById('modalFactureUser').textContent = facture.recu_par || '-';
+    document.getElementById('modalFactureNote').textContent = facture.note || '-';
+
+    showModal('detailsFactureModal');
+}
+
+
+
+function voirDetailsFacture(factureId) {
+    const facture = facturesImpayees.find(f => f.id === factureId);
+    if (!facture) return;
+
+    document.getElementById('modalFactureAbonne').textContent = facture.abonne;
+    document.getElementById('modalFactureMontant').textContent = facture.montant_ttc.toLocaleString();
+    document.getElementById('modalFacturePaye').textContent = facture.montant_paye.toLocaleString();
+    document.getElementById('modalFactureReste').textContent = facture.reste_a_payer.toLocaleString();
+    document.getElementById('modalFactureDate').textContent = new Date(facture.date_emission).toLocaleString();
+    document.getElementById('modalFactureMode').textContent = facture.mode_paiement || '-';
+    document.getElementById('modalFactureRef').textContent = facture.reference || '-';
+    document.getElementById('modalFactureUser').textContent = facture.recu_par || '-';
+    document.getElementById('modalFactureNote').textContent = facture.note || '-';
+
+    showModal('detailsFactureModal');
+}
+
+function showModal(id) {
+    document.getElementById(id).style.display = 'flex';
+}
+
+function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+}
+
+
 
 async function chargerConsommationsNonFacturees() {
     const abId = document.getElementById('abonneFacture').value;
@@ -102,11 +178,8 @@ async function creerFacture(e){
     } catch(e){ console.error(e); }
 }
 
-function voirDetailsFacture(id){ /* similaire à factures précédentes */ }
 
 function ajouterPaiement(id){ window.location.href=`/paiements?facture_id=${id}`; }
 
-function showModal(id){ document.getElementById(id).style.display='block'; }
-function closeModal(id){ document.getElementById(id).style.display='none'; }
 
 window.onclick = function(e){ if(e.target.classList.contains('modal')) e.target.style.display='none'; }

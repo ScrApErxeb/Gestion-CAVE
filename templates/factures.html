@@ -75,13 +75,24 @@
         </div>
     </div>
 
+
     <!-- Modal Détails Facture -->
     <div id="detailsFactureModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('detailsFactureModal')">&times;</span>
-            <div id="detailsFactureContent"></div>
+            <h3>Détails de la facture</h3>
+            <p><strong>Abonné :</strong> <span id="modalFactureAbonne"></span></p>
+            <p><strong>Montant total :</strong> <span id="modalFactureMontant"></span> FCFA</p>
+            <p><strong>Montant payé :</strong> <span id="modalFacturePaye"></span> FCFA</p>
+            <p><strong>Reste à payer :</strong> <span id="modalFactureReste"></span> FCFA</p>
+            <p><strong>Date d’émission :</strong> <span id="modalFactureDate"></span></p>
+            <p><strong>Mode de paiement :</strong> <span id="modalFactureMode"></span></p>
+            <p><strong>Référence :</strong> <span id="modalFactureRef"></span></p>
+            <p><strong>Reçu par :</strong> <span id="modalFactureUser"></span></p>
+            <p><strong>Note :</strong> <span id="modalFactureNote"></span></p>
         </div>
     </div>
+
 
     <script src="static/js/facture.js"></script>
 </body>
