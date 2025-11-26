@@ -1,15 +1,33 @@
+/* ===== PRODUIT.CSS — THEME STOCK SANS BLEU ===== */
+
+:root {
+    --primary: #1abc9c;          /* Vert principal */
+    --primary-dark: #16a085;     /* Vert foncé */
+    --danger: #e74c3c;           /* Rouge danger */
+    --warning: #f39c12;          /* Orange alerte */
+    --info: #1abc9c;             /* Vert info (même palette) */
+    --light: #f9f9f9;            /* Fond clair */
+    --border: #ddd;              /* Bordures */
+    --secondary: #bdc3c7;        /* Gris neutre */
+    --secondary-dark: #aeb6bf;   /* Gris hover */
+}
+
+/* ---- GLOBAL ---- */
 body.page-content {
     font-family: Arial, sans-serif;
     margin: 20px;
+    background: #f5f5f5;
+    color: #333;
 }
 
+/* ---- HEADER ---- */
 .page-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
     margin-bottom: 20px;
 }
 
+/* ---- STATISTIQUES ---- */
 .stats-grid {
     display: flex;
     gap: 20px;
@@ -17,23 +35,26 @@ body.page-content {
 
 .stat-card {
     flex: 1;
-    background: #f9f9f9;
+    background: var(--light);
     padding: 15px;
-    border-radius: 5px;
+    border-radius: 6px;
     text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
 .stat-card.alert {
     background: #fdecea;
-    color: #e74c3c;
+    color: var(--danger);
 }
 
+/* ---- RECHERCHE ---- */
 .search-bar {
     display: flex;
     gap: 10px;
     margin-bottom: 20px;
 }
 
+/* ---- TABLE ---- */
 .table-responsive {
     overflow-x: auto;
 }
@@ -41,48 +62,57 @@ body.page-content {
 .data-table {
     width: 100%;
     border-collapse: collapse;
+    background: #fff;
 }
 
-.data-table th, .data-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
+.data-table th,
+.data-table td {
+    border: 1px solid var(--border);
+    padding: 10px;
 }
 
 .data-table th {
-    background-color: #f0f0f0;
+    background: #f0f0f0;
+    font-weight: 600;
 }
 
 .row-alert {
-    background-color: #fdecea;
+    background: #fdecea;
 }
 
+/* ---- MODAL ---- */
 .modal {
     display: none;
     position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.4);
     z-index: 1000;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
-    overflow: auto;
-    background-color: rgba(0,0,0,0.4);
 }
 
 .modal-content {
-    background-color: #fff;
+    background: #fff;
     margin: 10% auto;
     padding: 20px;
-    border-radius: 5px;
+    border-radius: 6px;
     max-width: 600px;
     position: relative;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
 }
 
-.modal-content .close {
+.close {
     position: absolute;
     right: 10px;
     top: 5px;
     font-size: 25px;
     cursor: pointer;
+    color: #777;
 }
 
+.close:hover {
+    color: #333;
+}
+
+/* ---- FORMULAIRE ---- */
 .form-row {
     display: flex;
     gap: 10px;
@@ -102,14 +132,53 @@ body.page-content {
     margin-top: 15px;
 }
 
+/* ---- BOUTONS ---- */
 .btn {
-    padding: 5px 10px;
+    padding: 7px 12px;
+    border-radius: 4px;
     cursor: pointer;
+    border: none;
+    transition: 0.2s;
 }
 
-.btn-primary { background: #3498db; color: #fff; border: none; border-radius: 4px; }
-.btn-secondary { background: #bdc3c7; color: #fff; border: none; border-radius: 4px; }
-.btn-info { background: #1abc9c; color: #fff; border: none; border-radius: 4px; }
-.btn-warning { background: #f39c12; color: #fff; border: none; border-radius: 4px; }
-.btn-danger { background: #e74c3c; color: #fff; border: none; border-radius: 4px; }
-.btn-sm { padding: 3px 6px; font-size: 12px; }
+/* Vert principal */
+.btn-primary {
+    background: var(--primary);
+    color: #fff;
+}
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+/* Vert (info) */
+.btn-info {
+    background: var(--info);
+    color: #fff;
+}
+
+/* Orange */
+.btn-warning {
+    background: var(--warning);
+    color: #fff;
+}
+
+/* Rouge */
+.btn-danger {
+    background: var(--danger);
+    color: #fff;
+}
+
+/* Gris neutre */
+.btn-secondary {
+    background: var(--secondary);
+    color: #333;
+}
+.btn-secondary:hover {
+    background: var(--secondary-dark);
+}
+
+/* Petit bouton */
+.btn-sm {
+    padding: 3px 6px;
+    font-size: 12px;
+}

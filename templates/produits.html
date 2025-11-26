@@ -6,7 +6,9 @@
     <title>Gestion des produits</title>
     <link rel="stylesheet" href="static/css/produit.css">
 </head>
+
 <body class="page-content">
+
     <div class="page-header">
         <h2>📦 Gestion des produits</h2>
         <button class="btn btn-primary" onclick="showModal('addProduitModal')">+ Nouveau produit</button>
@@ -19,6 +21,7 @@
                 <div class="stat-label">Produits actifs</div>
             </div>
         </div>
+
         <div class="stat-card alert">
             <div class="stat-content">
                 <div class="stat-value" id="stockCritique">0</div>
@@ -32,28 +35,55 @@
         <button class="btn btn-info" onclick="filtrerStockCritique()">⚠️ Stocks critiques</button>
     </div>
 
-    <div class="table-responsive">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>Code</th>
-                    <th>Nom</th>
-                    <th>Type</th>
-                    <th>Prix achat</th>
-                    <th>Prix vente</th>
-                    <th>Stock</th>
-                    <th>Marge</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="produitsTable"></tbody>
-        </table>
-    </div>
 
+<h3 class="section-warning">⚠️ Produits en stock critique</h3>
+
+<div class="table-responsive">
+    <table class="data-table alert-table">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Produit</th>
+                <th>Stock</th>
+                <th>Seuil</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="tableStockCritique">
+            <!-- Rempli automatiquement -->
+        </tbody>
+    </table>
+</div>
+
+<h3 style="margin-top: 35px;">📋 Tous les produits</h3>
+
+<div class="table-responsive">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Nom</th>
+                <th>Type</th>
+                <th>Prix achat</th>
+                <th>Prix vente</th>
+                <th>Stock</th>
+                <th>Marge</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="produitsTable">
+            <!-- Rempli automatiquement -->
+        </tbody>
+    </table>
+</div>
+
+
+    <!-- MODAL AJOUT / EDITION PRODUIT -->
     <div id="addProduitModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('addProduitModal')">&times;</span>
             <h3 id="modalTitle">Nouveau produit</h3>
+
             <form id="produitForm" onsubmit="saveProduit(event)">
                 <input type="hidden" id="produitId">
 

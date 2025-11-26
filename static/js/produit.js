@@ -23,12 +23,36 @@ async function chargerProduits() {
 }
 
 function afficherProduits(produits) {
+
     const tbody = document.getElementById('produitsTable');
+    const alertTbody = document.getElementById('tableStockCritique');
+
     tbody.innerHTML = '';
-    
+    alertTbody.innerHTML = '';
+
     produits.forEach(p => {
+
+        // 🟥 TABLEAU DES PRODUITS EN STOCK CRITIQUE
+        if (p.stock_critique) {
+            const trc = document.createElement('tr');
+            trc.className = "row-alert";
+            trc.innerHTML = `
+                <td>${p.code_produit}</td>
+                <td><strong>${p.nom}</strong></td>
+                <td>${p.stock} ${p.unite}</td>
+                <td>${p.stock_alerte}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning" onclick="modifierProduit(${p.id})">✏️</button>
+                    <button class="btn btn-sm btn-danger" onclick="desactiverProduit(${p.id})">🗑️</button>
+                </td>
+            `;
+            alertTbody.appendChild(trc);
+        }
+
+        // 🟦 TABLEAU GLOBAL DES PRODUITS
         const tr = document.createElement('tr');
-        if (p.stock_critique) tr.className = 'row-alert';
+        if (p.stock_critique) tr.classList.add('row-alert');
+
         tr.innerHTML = `
             <td>${p.code_produit}</td>
             <td><strong>${p.nom}</strong></td>
@@ -42,6 +66,7 @@ function afficherProduits(produits) {
                 <button class="btn btn-sm btn-danger" onclick="desactiverProduit(${p.id})">🗑️</button>
             </td>
         `;
+
         tbody.appendChild(tr);
     });
 }

@@ -40,6 +40,8 @@ def get_produits():
 
         pagination = query.order_by(Produit.nom).paginate(page=page, per_page=per_page)
         produits = pagination.items
+        for p in produits:
+            print(">>>", p.nom, p.stock, p.stock_alerte, "CRITIQUE:", p.stock_critique)
 
         return jsonify({
             'success': True,

@@ -1,4 +1,11 @@
-/* static/css/500.css */
+/* 500.css - Optimisé + Palette Stock */
+:root {
+    --primary: #3498db;
+    --primary-dark: #2980b9;
+    --danger: #e74c3c;
+    --text-dark: #2c3e50;
+    --text-light: #7f8c8d;
+}
 
 .error-container {
     display: flex;
@@ -6,50 +13,41 @@
     justify-content: center;
     align-items: center;
     min-height: 100vh;
-    text-align: center;
     padding: 20px;
+    text-align: center;
 }
 
 .error-code {
     font-size: 120px;
     font-weight: bold;
-    color: #e74c3c;
-    margin: 0;
+    color: var(--danger);
 }
 
 .error-message {
     font-size: 28px;
-    color: #2c3e50;
+    color: var(--text-dark);
     margin: 20px 0;
 }
 
 .error-description {
     font-size: 16px;
-    color: #7f8c8d;
+    color: var(--text-light);
     margin-bottom: 30px;
     max-width: 600px;
 }
 
 .btn-primary {
-    display: inline-block;
     padding: 12px 25px;
-    font-size: 16px;
+    background: var(--primary);
     color: #fff;
-    background-color: #3498db;
     border-radius: 5px;
     text-decoration: none;
-    transition: background 0.3s;
+    transition: background .3s;
 }
 
-.btn-primary:hover {
-    background-color: #2980b9;
-}
+.btn-primary:hover { background: var(--primary-dark); }
 
 @media (max-width: 600px) {
-    .error-code {
-        font-size: 80px;
-    }
-    .error-message {
-        font-size: 22px;
-    }
+    .error-code { font-size: 80px; }
+    .error-message { font-size: 22px; }
 }
