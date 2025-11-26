@@ -4,35 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Erreur serveur - Cave Gestion</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        .error-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            text-align: center;
-            padding: 20px;
-        }
-        .error-code {
-            font-size: 120px;
-            font-weight: bold;
-            color: #e74c3c;
-            margin: 0;
-        }
-        .error-message {
-            font-size: 24px;
-            color: #2c3e50;
-            margin: 20px 0;
-        }
-        .error-description {
-            font-size: 16px;
-            color: #7f8c8d;
-            margin-bottom: 30px;
-            max-width: 600px;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='500.css') }}">
+
 </head>
 <body>
     <div class="error-container">

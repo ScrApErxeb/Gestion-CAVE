@@ -4,20 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion des abonnés</title>
+
+    <!-- CSS global -->
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <!-- CSS spécifique abonnés -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/abonnes.css') }}">
 </head>
+
 <body class="page-content">
     <div class="page-header">
         <h2>👥 Gestion des abonnés</h2>
         <button class="btn btn-primary" onclick="showModal('addAbonneModal')">+ Nouvel abonné</button>
     </div>
 
-    <!-- Barre de recherche -->
     <div class="search-bar">
         <input type="text" id="searchInput" placeholder="Rechercher par nom, numéro ou téléphone..." onkeyup="rechercherAbonnes()">
     </div>
 
-    <!-- Tableau des abonnés -->
     <div class="table-responsive">
         <table class="data-table" id="abonnesTable">
             <thead>
@@ -25,30 +29,30 @@
                     <th>N° Abonné</th>
                     <th>Nom complet</th>
                     <th>Téléphone</th>
-                    <th>Email</th>
+                    <th>Conso</th>
                     <th>Solde dû</th>
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody id="abonnesTableBody">
-                <!-- Rempli dynamiquement -->
-            </tbody>
+            <tbody id="abonnesTableBody"></tbody>
         </table>
     </div>
 
-    <!-- Modal Ajouter/Modifier Abonné -->
+    <!-- Modal -->
     <div id="addAbonneModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal('addAbonneModal')">&times;</span>
             <h3 id="modalTitle">Nouvel abonné</h3>
+
             <form id="abonneForm" onsubmit="saveAbonne(event)">
                 <input type="hidden" id="abonneId">
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="nom">Nom *</label>
                         <input type="text" id="nom" required>
                     </div>
+
                     <div class="form-group">
                         <label for="prenom">Prénom</label>
                         <input type="text" id="prenom">
@@ -60,6 +64,7 @@
                         <label for="telephone">Téléphone *</label>
                         <input type="tel" id="telephone" required>
                     </div>
+
                     <div class="form-group">
                         <label for="email">Email</label>
                         <input type="email" id="email">
@@ -84,163 +89,7 @@
         </div>
     </div>
 
-    <script>
-        // Charger les abonnés au démarrage
-        document.addEventListener('DOMContentLoaded', () => {
-            chargerAbonnes();
-        });
-
-        async function chargerAbonnes(recherche = '') {
-            try {
-                const response = await fetch(`/api/abonnes?recherche=${recherche}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    afficherAbonnes(data.data);
-                } else {
-                    alert('Erreur: ' + data.error);
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
-                alert('Erreur de chargement des abonnés');
-            }
-        }
-
-        function afficherAbonnes(abonnes) {
-            const tbody = document.getElementById('abonnesTableBody');
-            tbody.innerHTML = '';
-            
-            abonnes.forEach(abonne => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${abonne.numero_abonne}</td>
-                    <td><strong>${abonne.nom_complet}</strong></td>
-                    <td>${abonne.telephone}</td>
-                    <td>${abonne.email || '-'}</td>
-                    <td>${abonne.solde_du.toLocaleString()} FCFA</td>
-                    <td>
-                        <button class="btn btn-sm btn-info" onclick="voirAbonne(${abonne.id})">👁️</button>
-                        <button class="btn btn-sm btn-warning" onclick="modifierAbonne(${abonne.id})">✏️</button>
-                        <button class="btn btn-sm btn-danger" onclick="desactiverAbonne(${abonne.id})">🗑️</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function rechercherAbonnes() {
-            const recherche = document.getElementById('searchInput').value;
-            chargerAbonnes(recherche);
-        }
-
-        async function saveAbonne(event) {
-            event.preventDefault();
-            
-            const id = document.getElementById('abonneId').value;
-            const data = {
-                nom: document.getElementById('nom').value,
-                prenom: document.getElementById('prenom').value,
-                telephone: document.getElementById('telephone').value,
-                email: document.getElementById('email').value,
-                adresse: document.getElementById('adresse').value,
-                limite_credit: parseFloat(document.getElementById('limite_credit').value)
-            };
-            
-            try {
-                const url = id ? `/api/abonnes/${id}` : '/api/abonnes';
-                const method = id ? 'PUT' : 'POST';
-                
-                const response = await fetch(url, {
-                    method: method,
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert(result.message);
-                    closeModal('addAbonneModal');
-                    chargerAbonnes();
-                } else {
-                    alert('Erreur: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
-                alert('Erreur lors de l\'enregistrement');
-            }
-        }
-
-        async function modifierAbonne(id) {
-            try {
-                const response = await fetch(`/api/abonnes/${id}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    const abonne = data.data;
-                    document.getElementById('modalTitle').textContent = 'Modifier l\'abonné';
-                    document.getElementById('abonneId').value = abonne.id;
-                    document.getElementById('nom').value = abonne.nom;
-                    document.getElementById('prenom').value = abonne.prenom || '';
-                    document.getElementById('telephone').value = abonne.telephone;
-                    document.getElementById('email').value = abonne.email || '';
-                    document.getElementById('adresse').value = abonne.adresse || '';
-                    document.getElementById('limite_credit').value = abonne.limite_credit;
-                    
-                    showModal('addAbonneModal');
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
-                alert('Erreur de chargement de l\'abonné');
-            }
-        }
-
-        async function desactiverAbonne(id) {
-            if (!confirm('Voulez-vous vraiment désactiver cet abonné ?')) return;
-            
-            try {
-                const response = await fetch(`/api/abonnes/${id}`, {
-                    method: 'DELETE'
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    alert(result.message);
-                    chargerAbonnes();
-                } else {
-                    alert('Erreur: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
-                alert('Erreur lors de la désactivation');
-            }
-        }
-
-        function voirAbonne(id) {
-            // Redirection vers page détails (à implémenter)
-            alert('Fonction en développement');
-        }
-
-        // Fonctions utilitaires pour les modals
-        function showModal(modalId) {
-            document.getElementById(modalId).style.display = 'block';
-            if (modalId === 'addAbonneModal' && !document.getElementById('abonneId').value) {
-                document.getElementById('abonneForm').reset();
-                document.getElementById('modalTitle').textContent = 'Nouvel abonné';
-            }
-        }
-
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        // Fermer modal en cliquant à l'extérieur
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
-            }
-        }
-    </script>
+    <!-- JS -->
+    <script src="{{ url_for('static', filename='js/abonnes.js') }}"></script>
 </body>
 </html>

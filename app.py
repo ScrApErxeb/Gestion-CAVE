@@ -42,17 +42,21 @@ def init_database():
                 username='admin',
                 role='admin',
                 nom_complet='Administrateur'
-            ),
-            vendeur = User(
-                username='vendeur',
-                role='vendeur',
-                nom_complet='Vendeur')
+            )
 
 
             admin.set_password('admin123')
+            db.session.add(admin)
+
+
+
+            vendeur = User(
+            username='vendeur',
+            role='vendeur',
+            nom_complet='Vendeur')
+
             vendeur.set_password('vendeur123')
 
-            db.session.add(admin)
             db.session.add(vendeur)
 
             # Paramètres par défaut
@@ -78,6 +82,7 @@ def index():
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('home'))
+    
     
     if request.method == 'POST':
         username = request.form.get('username')

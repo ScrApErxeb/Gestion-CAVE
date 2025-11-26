@@ -122,6 +122,11 @@ class Abonne(db.Model):
         return f"{self.nom} {self.prenom or ''}".strip()
     
     @property
+    def conso_totale(self):
+        """Calcul de la consommation totale à partir des consommations."""
+        return sum(c.montant_total for c in self.consommations)
+    
+    @property
     def solde_du(self):
         """Calcul du solde dû (factures impayées)"""
         total_factures = sum(f.montant_ttc for f in self.factures if f.statut != 'payee')

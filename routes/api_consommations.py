@@ -101,35 +101,44 @@ def create_consommation():
     try:
         data = request.get_json()
         
-        # Validation
-        if not data.get('abonne_id') or not data.get('produit_id') or not data.get('quantite'):
-            return jsonify({'success': False, 'error': 'Abonné, produit et quantité obligatoires'}), 400
+        # Validation des champs
+        try:
+            abonne_id = int(data.get('abonne_id'))
+            produit_id = int(data.get('produit_id'))
+            quantite = int(data.get('quantite'))
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'error': 'Abonné, produit et quantité doivent être des nombres'}), 400
         
-        abonne = Abonne.query.get_or_404(data['abonne_id'])
-        produit = Produit.query.get_or_404(data['produit_id'])
-        quantite = int(data['quantite'])
+        abonne = Abonne.query.get_or_404(abonne_id)
+        produit = Produit.query.get_or_404(produit_id)
+        
+        if quantite <= 0:
+            return jsonify({'success': False, 'error': 'La quantité doit être supérieure à 0'}), 400
         
         # Vérifier le stock
         if produit.stock < quantite:
-            return jsonify({
-                'success': False,
-                'error': f'Stock insuffisant (disponible: {produit.stock})'
-            }), 400
+            return jsonify({'success': False, 'error': f'Stock insuffisant (disponible: {produit.stock})'}), 400
         
-        # Prix unitaire (prix actuel du produit ou prix personnalisé)
-        prix_unitaire = float(data.get('prix_unitaire', produit.prix_vente))
+        # Prix unitaire
+        try:
+            prix_unitaire = float(data.get('prix_unitaire', produit.prix_vente))
+        except ValueError:
+            prix_unitaire = produit.prix_vente
         
         # Créer la consommation
         consommation = Consommation(
-            abonne_id=data['abonne_id'],
-            produit_id=data['produit_id'],
+            abonne_id=abonne.id,
+            produit_id=produit.id,
             quantite=quantite,
             prix_unitaire=prix_unitaire,
             montant_total=quantite * prix_unitaire,
             note=data.get('note', '')
         )
         
-        # Mettre à jour le stock
+        db.session.add(consommation)
+        db.session.flush()  # Génère consommation.id avant de créer le log
+        
+        # Mise à jour du stock
         stock_avant = produit.stock
         produit.stock -= quantite
         
@@ -145,7 +154,6 @@ def create_consommation():
             reference=f'Consommation #{consommation.id}'
         )
         
-        db.session.add(consommation)
         db.session.add(stock_log)
         db.session.commit()
         
@@ -158,9 +166,13 @@ def create_consommation():
                 'stock_restant': produit.stock
             }
         }), 201
+    
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        # logger l'erreur côté serveur
+        print(f"[ERREUR] create_consommation: {e}")
+        return jsonify({'success': False, 'error': 'Une erreur est survenue lors de la création de la consommation'}), 500
+
 
 @consommations_bp.route('/consommations/<int:id>', methods=['PUT'])
 @login_required
@@ -180,12 +192,16 @@ def update_consommation(id):
         
         # Si la quantité change, ajuster le stock
         if 'quantite' in data:
-            nouvelle_quantite = int(data['quantite'])
-            difference = nouvelle_quantite - consommation.quantite
+            try:
+                nouvelle_quantite = int(data['quantite'])
+                if nouvelle_quantite <= 0:
+                    return jsonify({'success': False, 'error': 'La quantité doit être > 0'}), 400
+            except ValueError:
+                return jsonify({'success': False, 'error': 'Quantité invalide'}), 400
             
+            difference = nouvelle_quantite - consommation.quantite
             produit = consommation.produit
             
-            # Vérifier le stock si augmentation
             if difference > 0 and produit.stock < difference:
                 return jsonify({
                     'success': False,
@@ -221,9 +237,11 @@ def update_consommation(id):
             'success': True,
             'message': 'Consommation mise à jour avec succès'
         })
+    
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        print(f"[ERREUR] update_consommation: {e}")
+        return jsonify({'success': False, 'error': 'Une erreur est survenue lors de la mise à jour de la consommation'}), 500
 
 @consommations_bp.route('/consommations/<int:id>', methods=['DELETE'])
 @login_required

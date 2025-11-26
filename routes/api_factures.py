@@ -1,9 +1,161 @@
+# routes/api_factures.py
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from models import db, Facture, Consommation, Abonne
 from datetime import datetime, timedelta
 
-factures_bp = Blueprint('factures', __name__)
+factures_bp = Blueprint('factures', __name__)# routes/api_consommations_factures.py
+from flask import Blueprint, request, jsonify
+from flask_login import login_required, current_user
+from models import db, Consommation, Produit, Abonne, StockLog, Facture
+from datetime import datetime, timedelta
+
+bp = Blueprint('api', __name__)
+
+# -------------------- CONSOMMATIONS --------------------
+@bp.route('/consommations', methods=['GET'])
+@login_required
+def get_consommations():
+    try:
+        query = Consommation.query
+
+        abonne_id = request.args.get('abonne_id')
+        produit_id = request.args.get('produit_id')
+        date_debut = request.args.get('date_debut')
+        date_fin = request.args.get('date_fin')
+        facturees = request.args.get('facturees')
+
+        if abonne_id:
+            query = query.filter_by(abonne_id=int(abonne_id))
+        if produit_id:
+            query = query.filter_by(produit_id=int(produit_id))
+        if date_debut:
+            query = query.filter(Consommation.date >= datetime.fromisoformat(date_debut))
+        if date_fin:
+            query = query.filter(Consommation.date <= datetime.fromisoformat(date_fin))
+        if facturees == 'true':
+            query = query.filter(Consommation.facture_id.isnot(None))
+        elif facturees == 'false':
+            query = query.filter(Consommation.facture_id.is_(None))
+
+        consommations = query.order_by(Consommation.date.desc()).all()
+
+        return jsonify({
+            'success': True,
+            'data': [{
+                'id': c.id,
+                'abonne': c.abonne.nom_complet,
+                'produit': c.produit.nom,
+                'quantite': c.quantite,
+                'prix_unitaire': c.prix_unitaire,
+                'montant_total': c.montant_total,
+                'date': c.date.isoformat(),
+                'facture_id': c.facture_id,
+                'note': c.note
+            } for c in consommations]
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@bp.route('/consommations', methods=['POST'])
+@login_required
+def create_consommation():
+    if not current_user.has_permission('consommations'):
+        return jsonify({'success': False, 'error': 'Permission refusée'}), 403
+
+    try:
+        data = request.get_json()
+        abonne_id = int(data.get('abonne_id', 0))
+        produit_id = int(data.get('produit_id', 0))
+        quantite = int(data.get('quantite', 0))
+
+        if not abonne_id or not produit_id or quantite <= 0:
+            return jsonify({'success': False, 'error': 'Abonné, produit et quantité obligatoires'}), 400
+
+        abonne = Abonne.query.get_or_404(abonne_id)
+        produit = Produit.query.get_or_404(produit_id)
+
+        if produit.stock < quantite:
+            return jsonify({'success': False, 'error': f'Stock insuffisant ({produit.stock} disponible)'}), 400
+
+        prix_unitaire = float(data.get('prix_unitaire', produit.prix_vente))
+        consommation = Consommation(
+            abonne_id=abonne.id,
+            produit_id=produit.id,
+            quantite=quantite,
+            prix_unitaire=prix_unitaire,
+            montant_total=quantite * prix_unitaire,
+            note=data.get('note', '')
+        )
+
+        stock_avant = produit.stock
+        produit.stock -= quantite
+        stock_log = StockLog(
+            produit_id=produit.id,
+            type_mouvement='sortie',
+            quantite=quantite,
+            stock_avant=stock_avant,
+            stock_apres=produit.stock,
+            utilisateur=current_user.username,
+            commentaire=f'Vente à {abonne.nom_complet}',
+            reference=f'Consommation #{consommation.id}'
+        )
+
+        db.session.add(consommation)
+        db.session.add(stock_log)
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': 'Consommation enregistrée', 'data': {'id': consommation.id, 'stock_restant': produit.stock}}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# -------------------- FACTURES --------------------
+@bp.route('/factures', methods=['POST'])
+@login_required
+def create_facture():
+    if not current_user.has_permission('factures'):
+        return jsonify({'success': False, 'error': 'Permission refusée'}), 403
+
+    try:
+        data = request.get_json()
+        abonne_id = int(data.get('abonne_id', 0))
+        consommation_ids = [int(cid) for cid in data.get('consommation_ids', [])]
+
+        if not abonne_id or not consommation_ids:
+            return jsonify({'success': False, 'error': 'Abonné et consommations obligatoires'}), 400
+
+        abonne = Abonne.query.get_or_404(abonne_id)
+
+        date_echeance = datetime.fromisoformat(data.get('date_echeance')) if data.get('date_echeance') else datetime.now() + timedelta(days=30)
+
+        # Générer numéro facture unique
+        date_str = datetime.now().strftime('%Y%m')
+        dernier = Facture.query.filter(Facture.numero_facture.like(f'FAC-{date_str}-%')).order_by(Facture.id.desc()).first()
+        nouveau_num = int(dernier.numero_facture.split('-')[-1]) + 1 if dernier else 1
+        numero_facture = f'FAC-{date_str}-{nouveau_num:04d}'
+
+        facture = Facture(numero_facture=numero_facture, abonne_id=abonne.id,
+                          date_echeance=date_echeance, created_by_id=current_user.id,
+                          note=data.get('note', ''))
+        db.session.add(facture)
+        db.session.flush()
+
+        # Associer consommations non facturées
+        for cid in consommation_ids:
+            conso = Consommation.query.get(cid)
+            if conso and conso.facture_id is None:
+                conso.facture_id = facture.id
+
+        facture.calculer_montants()
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': 'Facture créée', 'data': {'id': facture.id, 'numero_facture': facture.numero_facture, 'montant_ttc': facture.montant_ttc}}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @factures_bp.route('/factures', methods=['GET'])
 @login_required

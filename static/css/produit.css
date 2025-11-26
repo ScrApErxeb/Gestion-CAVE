@@ -1,0 +1,115 @@
+body.page-content {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.stats-grid {
+    display: flex;
+    gap: 20px;
+}
+
+.stat-card {
+    flex: 1;
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.stat-card.alert {
+    background: #fdecea;
+    color: #e74c3c;
+}
+
+.search-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th, .data-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+.data-table th {
+    background-color: #f0f0f0;
+}
+
+.row-alert {
+    background-color: #fdecea;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 5px;
+    max-width: 600px;
+    position: relative;
+}
+
+.modal-content .close {
+    position: absolute;
+    right: 10px;
+    top: 5px;
+    font-size: 25px;
+    cursor: pointer;
+}
+
+.form-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn {
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.btn-primary { background: #3498db; color: #fff; border: none; border-radius: 4px; }
+.btn-secondary { background: #bdc3c7; color: #fff; border: none; border-radius: 4px; }
+.btn-info { background: #1abc9c; color: #fff; border: none; border-radius: 4px; }
+.btn-warning { background: #f39c12; color: #fff; border: none; border-radius: 4px; }
+.btn-danger { background: #e74c3c; color: #fff; border: none; border-radius: 4px; }
+.btn-sm { padding: 3px 6px; font-size: 12px; }

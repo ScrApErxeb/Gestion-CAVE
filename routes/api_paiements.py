@@ -115,7 +115,8 @@ def create_paiement():
             note=data.get('note', '')
         )
         
-        db.session.add(paiement)
+        db.session.add(paiement)  
+        #
         
         # Mettre à jour le statut de la facture
         facture.mettre_a_jour_statut()

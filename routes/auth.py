@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User
+from flask import render_template
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -26,7 +27,7 @@ def register():
 
 # Connexion
 @auth_bp.route("/login", methods=["POST"])
-def login():
+def login_api():
     data = request.get_json()
     username = data.get("username")
     password = data.get("password")
@@ -41,6 +42,12 @@ def login():
         return jsonify({"message": "Connexion réussie", "user_id": user.id}), 200
 
     return jsonify({"message": "Identifiants invalides"}), 401
+
+
+@auth_bp.route("/login", methods=["GET"])
+def login_page():
+    return render_template("login.html")
+
 
 
 # Vérifier session utilisateur
@@ -62,3 +69,6 @@ def me():
 def logout():
     session.pop("user_id", None)
     return jsonify({"message": "Déconnexion réussie"}), 200
+
+
+    abort(500)

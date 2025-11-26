@@ -8,34 +8,45 @@ produits_bp = Blueprint('produits', __name__)
 @produits_bp.route('/produits', methods=['GET'])
 @login_required
 def get_produits():
-    """Récupérer tous les produits"""
+    """Récupérer tous les produits avec filtres et pagination"""
     try:
         recherche = request.args.get('recherche', '')
         actif = request.args.get('actif', 'true').lower() == 'true'
         stock_critique = request.args.get('stock_critique', '').lower() == 'true'
-        
+        categorie_id = request.args.get('categorie_id')
+        fournisseur_id = request.args.get('fournisseur_id')
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+
         query = Produit.query
-        
+
         if actif:
             query = query.filter_by(actif=True)
-        
         if stock_critique:
             query = query.filter(Produit.stock <= Produit.stock_alerte)
-        
         if recherche:
-            recherche_pattern = f'%{recherche}%'
+            pattern = f"%{recherche}%"
             query = query.filter(
                 db.or_(
-                    Produit.code_produit.like(recherche_pattern),
-                    Produit.nom.like(recherche_pattern),
-                    Produit.type.like(recherche_pattern)
+                    Produit.code_produit.like(pattern),
+                    Produit.nom.like(pattern),
+                    Produit.type.like(pattern)
                 )
             )
-        
-        produits = query.order_by(Produit.nom).all()
-        
+        if categorie_id:
+            query = query.filter_by(categorie_id=int(categorie_id))
+        if fournisseur_id:
+            query = query.filter_by(fournisseur_id=int(fournisseur_id))
+
+        pagination = query.order_by(Produit.nom).paginate(page=page, per_page=per_page)
+        produits = pagination.items
+
         return jsonify({
             'success': True,
+            'total': pagination.total,
+            'pages': pagination.pages,
+            'page': page,
+            'per_page': per_page,
             'data': [{
                 'id': p.id,
                 'code_produit': p.code_produit,
@@ -90,44 +101,53 @@ def get_produit(id):
 @produits_bp.route('/produits', methods=['POST'])
 @login_required
 def create_produit():
-    """Créer un nouveau produit"""
     if not current_user.has_permission('produits'):
         return jsonify({'success': False, 'error': 'Permission refusée'}), 403
-    
+
     try:
         data = request.get_json()
-        
-        # Validation
-        if not data.get('nom') or not data.get('prix_vente'):
-            return jsonify({'success': False, 'error': 'Nom et prix de vente obligatoires'}), 400
-        
-        # Vérifier si le code produit existe déjà
+
+        # Validation des champs numériques
+        try:
+            prix_vente = float(data['prix_vente'])
+            prix_achat = float(data.get('prix_achat', 0))
+            stock = int(data.get('stock', 0))
+            stock_alerte = int(data.get('stock_alerte', 10))
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Prix, stock et stock alerte doivent être des nombres valides'}), 400
+
+        # Vérifier l'existence de la catégorie et du fournisseur
+        if data.get('categorie_id') and not Categorie.query.get(data['categorie_id']):
+            return jsonify({'success': False, 'error': 'Catégorie invalide'}), 400
+        if data.get('fournisseur_id') and not Fournisseur.query.get(data['fournisseur_id']):
+            return jsonify({'success': False, 'error': 'Fournisseur invalide'}), 400
+
+        # Générer un code produit si nécessaire
         if data.get('code_produit'):
-            existe = Produit.query.filter_by(code_produit=data['code_produit']).first()
-            if existe:
+            if Produit.query.filter_by(code_produit=data['code_produit']).first():
                 return jsonify({'success': False, 'error': 'Code produit déjà utilisé'}), 400
         else:
-            # Générer un code automatique
             dernier = Produit.query.order_by(Produit.id.desc()).first()
-            prochain_numero = (dernier.id + 1) if dernier else 1
-            data['code_produit'] = f'PRD{prochain_numero:05d}'
-        
+            prochain_num = (dernier.id + 1) if dernier else 1
+            data['code_produit'] = f'PRD{prochain_num:05d}'
+
+        # Créer le produit sans setter marge/marge_pourcentage
         produit = Produit(
-            code_produit=data['code_produit'],
-            nom=data['nom'],
-            type=data.get('type', ''),
-            prix_achat=data.get('prix_achat', 0),
-            prix_vente=data['prix_vente'],
-            stock=data.get('stock', 0),
-            stock_alerte=data.get('stock_alerte', 10),
-            unite=data.get('unite', 'unité'),
-            categorie_id=data.get('categorie_id'),
-            fournisseur_id=data.get('fournisseur_id')
-        )
-        
+        code_produit=data['code_produit'],
+        nom=data['nom'],
+        type=data.get('type', ''),
+        prix_achat=prix_achat,
+        prix_vente=prix_vente,
+        stock=stock,
+        stock_alerte=stock_alerte,
+        unite=data.get('unite', 'unité'),
+        categorie_id=data.get('categorie_id'),
+        fournisseur_id=data.get('fournisseur_id')
+    )
+
         db.session.add(produit)
         db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': 'Produit créé avec succès',
@@ -137,6 +157,7 @@ def create_produit():
                 'nom': produit.nom
             }
         }), 201
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -144,47 +165,57 @@ def create_produit():
 @produits_bp.route('/produits/<int:id>', methods=['PUT'])
 @login_required
 def update_produit(id):
-    """Mettre à jour un produit"""
     if not current_user.has_permission('produits'):
         return jsonify({'success': False, 'error': 'Permission refusée'}), 403
-    
+
     try:
         produit = Produit.query.get_or_404(id)
         data = request.get_json()
-        
-        # Mise à jour des champs
-        if 'nom' in data:
-            produit.nom = data['nom']
-        if 'type' in data:
-            produit.type = data['type']
-        if 'prix_achat' in data:
-            produit.prix_achat = data['prix_achat']
+
+        # Mise à jour des champs numériques
         if 'prix_vente' in data:
-            produit.prix_vente = data['prix_vente']
+            try:
+                produit.prix_vente = float(data['prix_vente'])
+            except ValueError:
+                return jsonify({'success': False, 'error': 'Prix vente invalide'}), 400
+        if 'prix_achat' in data:
+            try:
+                produit.prix_achat = float(data['prix_achat'])
+            except ValueError:
+                return jsonify({'success': False, 'error': 'Prix achat invalide'}), 400
         if 'stock' in data:
-            produit.stock = data['stock']
+            try:
+                produit.stock = int(data['stock'])
+            except ValueError:
+                return jsonify({'success': False, 'error': 'Stock invalide'}), 400
         if 'stock_alerte' in data:
-            produit.stock_alerte = data['stock_alerte']
-        if 'unite' in data:
-            produit.unite = data['unite']
-        if 'categorie_id' in data:
+            try:
+                produit.stock_alerte = int(data['stock_alerte'])
+            except ValueError:
+                return jsonify({'success': False, 'error': 'Stock alerte invalide'}), 400
+
+        # Vérifier existence catégorie/fournisseur
+        if 'categorie_id' in data and data['categorie_id']:
+            if not Categorie.query.get(data['categorie_id']):
+                return jsonify({'success': False, 'error': 'Catégorie invalide'}), 400
             produit.categorie_id = data['categorie_id']
-        if 'fournisseur_id' in data:
+
+        if 'fournisseur_id' in data and data['fournisseur_id']:
+            if not Fournisseur.query.get(data['fournisseur_id']):
+                return jsonify({'success': False, 'error': 'Fournisseur invalide'}), 400
             produit.fournisseur_id = data['fournisseur_id']
-        if 'actif' in data:
-            produit.actif = data['actif']
-        
+
+        # Mise à jour des autres champs
+        for champ in ['nom', 'type', 'unite', 'actif']:
+            if champ in data:
+                setattr(produit, champ, data[champ])
+
+        # Recalcul automatique de la marge
+
         db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Produit mis à jour avec succès',
-            'data': {
-                'id': produit.id,
-                'code_produit': produit.code_produit,
-                'nom': produit.nom
-            }
-        })
+
+        return jsonify({'success': True, 'message': 'Produit mis à jour avec succès', 'data': {'id': produit.id, 'code_produit': produit.code_produit, 'nom': produit.nom}})
+
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
