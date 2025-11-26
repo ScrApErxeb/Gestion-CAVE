@@ -20,7 +20,9 @@ async function chargerFactures() {
     }
 }
 
-// --- Afficher les factures dans le tableau ---
+
+
+
 function afficherFactures() {
     const tbody = document.getElementById('paiementsTable');
     tbody.innerHTML = '';
@@ -37,9 +39,6 @@ function afficherFactures() {
             <td>${f.numero_facture}</td>
             <td>${f.abonne}</td>
             <td>${f.montant_ttc.toLocaleString()} FCFA</td>
-            <td>${f.mode_paiement || '-'}</td>
-            <td>${f.reference || '-'}</td>
-            <td>${f.recu_par || '-'}</td>
             <td>${statutBadge}</td>
             <td></td>
         `;
