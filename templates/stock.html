@@ -12,17 +12,7 @@
         <h2>📋 Gestion du stock</h2>
     </div>
 
-    <!-- Actions rapides -->
-    <div class="dashboard-section">
-        <h3>Actions rapides</h3>
-        <div class="actions-buttons">
-            <button class="btn btn-success" onclick="showModal('entreeModal')">📥 Entrée de stock</button>
-            <button class="btn btn-warning" onclick="showModal('sortieModal')">📤 Sortie de stock</button>
-            <button class="btn btn-info" onclick="showModal('ajustementModal')">🔧 Ajustement</button>
-        </div>
-    </div>
-
-    <!-- Alertes stock -->
+    <!-- ⚠️ Produits en stock critique — PRIORITAIRE -->
     <div class="dashboard-section">
         <h3>⚠️ Produits en stock critique</h3>
         <div class="table-responsive">
@@ -40,7 +30,17 @@
         </div>
     </div>
 
-    <!-- Historique des mouvements -->
+    <!-- Actions rapides -->
+    <div class="dashboard-section">
+        <h3>Actions rapides</h3>
+        <div class="actions-buttons">
+            <button class="btn btn-success" onclick="showModal('entreeModal')">📥 Entrée de stock</button>
+            <button class="btn btn-warning" onclick="showModal('sortieModal')">📤 Sortie de stock</button>
+            <button class="btn btn-info" onclick="showModal('ajustementModal')">🔧 Ajustement</button>
+        </div>
+    </div>
+
+    <!-- 📜 Historique des mouvements -->
     <div class="dashboard-section">
         <h3>📜 Historique des mouvements</h3>
         <div class="table-responsive">
@@ -62,65 +62,66 @@
         </div>
     </div>
 
+    <!-- Modals inchangés -->
     <!-- Modal Entrée de stock -->
-<div id="entreeModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('entreeModal')">&times;</span>
-        <h3>📥 Entrée de stock</h3>
-        <form id="entreeForm" onsubmit="enregistrerEntree(event)">
-            <div class="form-group">
-                <label for="produitEntree">Produit *</label>
-                <select id="produitEntree" required>
-                    <option value="">Sélectionner un produit</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="quantiteEntree">Quantité *</label>
-                <input type="number" id="quantiteEntree" min="1" required>
-            </div>
-            <div class="form-group">
-                <label for="referenceEntree">Référence</label>
-                <input type="text" id="referenceEntree">
-            </div>
-            <div class="form-group">
-                <label for="commentaireEntree">Commentaire</label>
-                <textarea id="commentaireEntree" rows="2"></textarea>
-            </div>
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('entreeModal')">Annuler</button>
-                <button type="submit" class="btn btn-success">Enregistrer</button>
-            </div>
-        </form>
+    <div id="entreeModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('entreeModal')">&times;</span>
+            <h3>📥 Entrée de stock</h3>
+            <form id="entreeForm" onsubmit="enregistrerEntree(event)">
+                <div class="form-group">
+                    <label for="produitEntree">Produit *</label>
+                    <select id="produitEntree" required>
+                        <option value="">Sélectionner un produit</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="quantiteEntree">Quantité *</label>
+                    <input type="number" id="quantiteEntree" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="referenceEntree">Référence</label>
+                    <input type="text" id="referenceEntree">
+                </div>
+                <div class="form-group">
+                    <label for="commentaireEntree">Commentaire</label>
+                    <textarea id="commentaireEntree" rows="2"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('entreeModal')">Annuler</button>
+                    <button type="submit" class="btn btn-success">Enregistrer</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
 
-<!-- Modal Sortie de stock -->
-<div id="sortieModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('sortieModal')">&times;</span>
-        <h3>📤 Sortie de stock</h3>
-        <form id="sortieForm" onsubmit="enregistrerSortie(event)">
-            <div class="form-group">
-                <label for="produitSortie">Produit *</label>
-                <select id="produitSortie" required>
-                    <option value="">Sélectionner un produit</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="quantiteSortie">Quantité *</label>
-                <input type="number" id="quantiteSortie" min="1" required>
-            </div>
-            <div class="form-group">
-                <label for="commentaireSortie">Raison *</label>
-                <textarea id="commentaireSortie" rows="2" required placeholder="Ex: Perte, casse, don..."></textarea>
-            </div>
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('sortieModal')">Annuler</button>
-                <button type="submit" class="btn btn-warning">Enregistrer</button>
-            </div>
-        </form>
+    <!-- Modal Sortie -->
+    <div id="sortieModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('sortieModal')">&times;</span>
+            <h3>📤 Sortie de stock</h3>
+            <form id="sortieForm" onsubmit="enregistrerSortie(event)">
+                <div class="form-group">
+                    <label for="produitSortie">Produit *</label>
+                    <select id="produitSortie" required>
+                        <option value="">Sélectionner un produit</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="quantiteSortie">Quantité *</label>
+                    <input type="number" id="quantiteSortie" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="commentaireSortie">Raison *</label>
+                    <textarea id="commentaireSortie" rows="2" required placeholder="Ex: Perte, casse, don..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('sortieModal')">Annuler</button>
+                    <button type="submit" class="btn btn-warning">Enregistrer</button>
+                </div>
+            </form>
+        </div>
     </div>
-</div>
 
     <!-- Modal Ajustement -->
     <div id="ajustementModal" class="modal">
@@ -153,7 +154,6 @@
             </form>
         </div>
     </div>
-
 
     <script src="{{ url_for('static', filename='js/stock.js') }}"></script>
 </body>
