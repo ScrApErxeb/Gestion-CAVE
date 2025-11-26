@@ -55,37 +55,6 @@
         </div>
     </div>
 
-    <!-- Alertes stock critique -->
-    {% if produits_critiques %}
-    <div class="dashboard-section">
-        <h3>⚠️ Produits en stock critique</h3>
-        <div class="table-responsive">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Code</th>
-                        <th>Produit</th>
-                        <th>Stock actuel</th>
-                        <th>Seuil d'alerte</th>
-                        <th>Unité</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for produit in produits_critiques %}
-                    <tr class="row-alert">
-                        <td>{{ produit.code_produit }}</td>
-                        <td>{{ produit.nom }}</td>
-                        <td><strong>{{ produit.stock }}</strong></td>
-                        <td>{{ produit.stock_alerte }}</td>
-                        <td>{{ produit.unite }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% endif %}
-
     <!-- Dernières consommations -->
     <div class="dashboard-section">
         <h3>🛒 Dernières consommations</h3>

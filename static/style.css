@@ -340,7 +340,7 @@ body {
 }
 
 .stat-icon {
-    font-size: 36px;
+    font-size: 40px;
 }
 
 .stat-value {
@@ -357,10 +357,13 @@ body {
 
 .stat-card.alert {
     border-left: 4px solid var(--danger-color);
+    border-top: 4px solid var(--danger-color);
 }
 
 .stat-card.warning {
-    border-left: 4px solid var(--warning-color);
+    border-right: 4px solid var(--warning-color);
+    border-bottom: 4px solid var(--warning-color);
+
 }
 
 /* ===== SECTIONS DASHBOARD ===== */
@@ -443,7 +446,7 @@ body {
 /* ===== ALERTES ===== */
 .alert {
     padding: 15px;
-    margin-bottom: 20px;
+    margin-bottom: 2px;
     border-radius: 5px;
     font-weight: 600;
 }

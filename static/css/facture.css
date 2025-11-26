@@ -3,7 +3,6 @@
 :root {
     --primary: #1abc9c;          /* Vert principal */
     --primary-dark: #16a085;     /* Vert foncé */
-    --secondary: #bdc3c7;        /* Gris neutre */
     --secondary-dark: #aeb6bf;   /* Gris hover */
     --border: #ddd;              /* Gris bordure */
     --bg-light: #f5f5f5;         /* Fond clair */
